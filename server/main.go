@@ -613,6 +613,12 @@ func main() {
 
 	http.HandleFunc("/ws", server.handleConnection)
 
-	log.Println("Server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Use PORT env variable if available (for Render), otherwise 8080
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Server starting on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
