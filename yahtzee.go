@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -49,6 +50,7 @@ type Die struct {
 
 type YahtzeePlayer struct {
 	name       string
+	avatar     AvatarType
 	scores     [NumCategories]*int
 	totalScore int
 }
@@ -91,24 +93,51 @@ type YahtzeeGame struct {
 	rng           *rand.Rand
 	networkClient *NetworkClient
 	myPlayerNum   int
+	numPlayers    int
+	playerAvatars []AvatarType
 }
 
 func NewYahtzeeGame() *YahtzeeGame {
 	return NewYahtzeeGameWithNetwork(nil, 0)
 }
 
-func NewYahtzeeGameWithNetwork(nc *NetworkClient, playerNum int) *YahtzeeGame {
+func NewYahtzeeGameWithPlayers(nc *NetworkClient, playerNum int, playerData []map[string]interface{}) *YahtzeeGame {
+	numPlayers := len(playerData)
+	if numPlayers == 0 {
+		numPlayers = 2
+	}
+
 	g := &YahtzeeGame{
-		players:       make([]*YahtzeePlayer, 2),
+		players:       make([]*YahtzeePlayer, numPlayers),
 		currentPlayer: 0,
 		rollsLeft:     3,
 		rng:           rand.New(rand.NewSource(time.Now().UnixNano())),
 		networkClient: nc,
 		myPlayerNum:   playerNum,
+		numPlayers:    numPlayers,
+		playerAvatars: make([]AvatarType, numPlayers),
 	}
 
-	g.players[0] = &YahtzeePlayer{name: "Player 1"}
-	g.players[1] = &YahtzeePlayer{name: "Player 2"}
+	// Initialize players from server data
+	for i := 0; i < numPlayers; i++ {
+		name := fmt.Sprintf("Player %d", i+1)
+		avatar := i % int(AvatarNumTypes)
+		
+		if i < len(playerData) {
+			if n, ok := playerData[i]["name"].(string); ok {
+				name = n
+			}
+			if a, ok := playerData[i]["avatar"].(float64); ok {
+				avatar = int(a)
+			}
+		}
+		
+		g.players[i] = &YahtzeePlayer{
+			name:   name,
+			avatar: AvatarType(avatar),
+		}
+		g.playerAvatars[i] = AvatarType(avatar)
+	}
 
 	// Register network handler
 	if nc != nil {
@@ -120,6 +149,58 @@ func NewYahtzeeGameWithNetwork(nc *NetworkClient, playerNum int) *YahtzeeGame {
 		})
 	}
 
+	// Setup UI elements
+	g.setupUI()
+	
+	return g
+}
+
+func NewYahtzeeGameWithNetwork(nc *NetworkClient, playerNum int) *YahtzeeGame {
+	// Default to 2 players for offline mode
+	numPlayers := 2
+	if nc != nil {
+		// In network mode, we'll get the actual player count from the server
+		// For now, default to 2 but this will be updated when game starts
+		numPlayers = 2
+	}
+
+	g := &YahtzeeGame{
+		players:       make([]*YahtzeePlayer, numPlayers),
+		currentPlayer: 0,
+		rollsLeft:     3,
+		rng:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		networkClient: nc,
+		myPlayerNum:   playerNum,
+		numPlayers:    numPlayers,
+		playerAvatars: make([]AvatarType, numPlayers),
+	}
+
+	// Initialize players with default names and avatars
+	for i := 0; i < numPlayers; i++ {
+		g.players[i] = &YahtzeePlayer{
+			name:   fmt.Sprintf("Player %d", i+1),
+			avatar: AvatarType(i % int(AvatarNumTypes)),
+		}
+		g.playerAvatars[i] = AvatarType(i % int(AvatarNumTypes))
+	}
+
+	// Register network handler
+	if nc != nil {
+		nc.RegisterHandler(MsgGameMove, func(msg Message) {
+			var move YahtzeeMove
+			if err := json.Unmarshal(msg.Data, &move); err == nil {
+				g.applyMove(move)
+			}
+		})
+	}
+
+	// Setup UI elements
+	g.setupUI()
+
+	return g
+}
+
+func (g *YahtzeeGame) setupUI() {
 	diceY := 150.0
 	diceSpacing := 100.0
 	diceStartX := 150.0
@@ -167,8 +248,6 @@ func NewYahtzeeGameWithNetwork(nc *NetworkClient, playerNum int) *YahtzeeGame {
 		text:    "New Game",
 		enabled: false,
 	}
-
-	return g
 }
 
 func (g *YahtzeeGame) Reset() {
@@ -557,30 +636,125 @@ func (g *YahtzeeGame) drawScoreButton(screen *ebiten.Image, btn *Button, categor
 }
 
 func (g *YahtzeeGame) drawScoreSummary(screen *ebiten.Image) {
-	y := 550
+	// Dynamic layout based on number of players
+	// Available space: from y=340 (below roll button) to y=700 (leaving space at bottom)
+	availableHeight := 360.0
+	// Scorecard starts at x=720, so we have from x=0 to x=700 available (with margins)
+	availableWidth := 680.0  // Leave 20px margin before scorecard
+	spacing := 5.0
+	
+	var cols, rows int
+	var panelWidth, panelHeight float64
+	
+	// Determine optimal grid layout
+	switch {
+	case g.numPlayers <= 2:
+		cols, rows = g.numPlayers, 1
+		panelHeight = 120.0
+	case g.numPlayers <= 4:
+		cols, rows = g.numPlayers, 1
+		panelHeight = 100.0
+	case g.numPlayers <= 6:
+		cols, rows = 3, 2
+		panelHeight = 80.0
+	case g.numPlayers <= 10:
+		cols, rows = 5, 2
+		panelHeight = 70.0
+	case g.numPlayers <= 15:
+		cols, rows = 5, 3
+		panelHeight = 65.0
+	default: // 16-20 players
+		cols, rows = 5, 4
+		panelHeight = 60.0
+	}
+	
+	// Adjust rows based on actual players
+	actualRows := (g.numPlayers + cols - 1) / cols
+	if actualRows < rows {
+		rows = actualRows
+	}
+	
+	// Calculate panel width based on available space and columns
+	panelWidth = (availableWidth - float64(cols-1)*spacing) / float64(cols)
+	if panelWidth > 180 {
+		panelWidth = 180  // Cap max width
+	}
+	
+	// Calculate actual height based on available space
+	maxPanelHeight := (availableHeight - float64(rows-1)*spacing) / float64(rows)
+	if panelHeight > maxPanelHeight {
+		panelHeight = maxPanelHeight
+	}
+	
+	// Center the grid within available space (left side of screen)
+	totalWidth := float64(cols)*panelWidth + float64(cols-1)*spacing
+	// Center within the left 700 pixels (before scorecard)
+	startX := (700.0 - totalWidth) / 2
+	if startX < 10 {
+		startX = 10  // Minimum margin
+	}
+	startY := 340.0  // Below the roll button
+	
+	// Draw player panels
 	for i, player := range g.players {
-		x := float64(20 + i*350)
-		panelColor := color.RGBA{30, 50, 80, 255}
-		var borderColor color.RGBA
-		if i == 0 {
-			borderColor = color.RGBA{100, 150, 220, 255}
-		} else {
-			borderColor = color.RGBA{200, 160, 120, 255}
+		col := i % cols
+		row := i / cols
+		x := startX + float64(col)*(panelWidth+spacing)
+		y := startY + float64(row)*(panelHeight+spacing)
+		g.drawPlayerPanel(screen, player, i, x, y, panelWidth, panelHeight)
+	}
+}
+
+func (g *YahtzeeGame) drawPlayerPanel(screen *ebiten.Image, player *YahtzeePlayer, index int, x, y, width, height float64) {
+	panelColor := color.RGBA{30, 50, 80, 255}
+	borderColor := color.RGBA{100, 150, 220, 255}
+	
+	// Highlight current player
+	if index == g.currentPlayer {
+		borderColor = color.RGBA{255, 220, 100, 255}
+		panelColor = color.RGBA{50, 70, 100, 255}
+	}
+	
+	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), panelColor, false)
+	vector.StrokeRect(screen, float32(x), float32(y), float32(width), float32(height), 2, borderColor, false)
+	
+	// Dynamic sizing based on panel height
+	// Avatar should take up about 60% of height, leaving room for text
+	avatarSize := height * 0.6
+	if avatarSize > 50 {
+		avatarSize = 50  // Cap max size
+	}
+	avatarScale := float32(avatarSize / 50.0)  // Base avatar is 50x50
+	
+	// Position avatar with consistent padding
+	avatarX := float32(x + 5)
+	avatarY := float32(y + (height-avatarSize)/2)
+	DrawAvatar(screen, player.avatar, avatarX, avatarY, avatarScale)
+	
+	// Text positioning - after avatar with padding
+	textX := int(x + avatarSize + 10)
+	nameY := int(y + height*0.3)
+	scoreY := int(y + height*0.6)
+	
+	// Use smaller font for very compact layouts
+	if height < 70 {
+		// For very small panels, put text on single line
+		combinedText := fmt.Sprintf("%s: %d", player.name, player.totalScore)
+		ebitenutil.DebugPrintAt(screen, combinedText, textX, int(y+height/2-4))
+		if index == g.currentPlayer {
+			ebitenutil.DebugPrintAt(screen, combinedText, textX+1, int(y+height/2-4))
 		}
-		vector.DrawFilledRect(screen, float32(x), float32(y), 320, 140, panelColor, false)
-		vector.StrokeRect(screen, float32(x), float32(y), 320, 140, 2, borderColor, false)
-		if i == 0 {
-			DrawPlayer1Avatar(screen, float32(x+10), float32(y+10), 2.0)
-			ebitenutil.DebugPrintAt(screen, player.name, int(x+130), y+30)
-			ebitenutil.DebugPrintAt(screen, player.name, int(x+131), y+30)
-			ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Score: %d", player.totalScore), int(x+130), y+60)
-			ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Score: %d", player.totalScore), int(x+131), y+60)
-		} else {
-			DrawPlayer2Avatar(screen, float32(x+10), float32(y+10), 2.0)
-			ebitenutil.DebugPrintAt(screen, player.name, int(x+130), y+30)
-			ebitenutil.DebugPrintAt(screen, player.name, int(x+131), y+30)
-			ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Score: %d", player.totalScore), int(x+130), y+60)
-			ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Score: %d", player.totalScore), int(x+131), y+60)
+	} else {
+		// Normal two-line display
+		ebitenutil.DebugPrintAt(screen, player.name, textX, nameY)
+		if index == g.currentPlayer {
+			ebitenutil.DebugPrintAt(screen, player.name, textX+1, nameY)
+		}
+		
+		scoreText := fmt.Sprintf("Score: %d", player.totalScore)
+		ebitenutil.DebugPrintAt(screen, scoreText, textX, scoreY)
+		if index == g.currentPlayer {
+			ebitenutil.DebugPrintAt(screen, scoreText, textX+1, scoreY)
 		}
 	}
 }

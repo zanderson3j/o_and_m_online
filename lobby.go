@@ -18,19 +18,24 @@ type LobbyScreen struct {
 	createRoomButton *Button   // Button to create new room
 	backButton       *Button
 	startButton      *Button
+	avatarButtons    []*Button // Avatar selection buttons
 	selectedGame     string
+	selectedAvatar   AvatarType
 	showingRooms     bool
 	inRoom           bool
 	waitingForGame   bool
+	showAvatarSelect bool
 }
 
 func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 	ls := &LobbyScreen{
-		networkClient: nc,
-		createButtons: make([]*Button, 5),
-		roomButtons:   make([]*Button, 0),
-		showingRooms:  false,
-		inRoom:        false,
+		networkClient:  nc,
+		createButtons:  make([]*Button, 5),
+		roomButtons:    make([]*Button, 0),
+		avatarButtons:  make([]*Button, int(AvatarNumTypes)),
+		selectedAvatar: AvatarHuman,
+		showingRooms:   false,
+		inRoom:         false,
 	}
 
 	// Create buttons for each game type (5 games)
@@ -78,7 +83,7 @@ func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 	// Start game button (when in room)
 	ls.startButton = &Button{
 		x:       float64(screenWidth/2) - 100,
-		y:       float64(screenHeight - 100),
+		y:       400,  // Changed from screenHeight-100 to avoid potential overlap
 		width:   200,
 		height:  60,
 		text:    "START GAME",
@@ -95,37 +100,94 @@ func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 		enabled: true,
 	}
 
+	// Avatar selection buttons - arranged in grid
+	avatarSize := 80.0
+	avatarSpacing := 100.0
+	avatarsPerRow := 8  // 8 avatars per row
+	numRows := (int(AvatarNumTypes) + avatarsPerRow - 1) / avatarsPerRow
+	
+	// Center the grid
+	totalWidth := float64(avatarsPerRow) * avatarSpacing - (avatarSpacing - avatarSize)
+	avatarStartX := (float64(screenWidth) - totalWidth) / 2
+	avatarStartY := 200.0
+
+	for i := 0; i < int(AvatarNumTypes); i++ {
+		row := i / avatarsPerRow
+		col := i % avatarsPerRow
+		
+		// Center last row if it has fewer avatars
+		xOffset := 0.0
+		if row == numRows-1 {
+			avatarsInLastRow := int(AvatarNumTypes) % avatarsPerRow
+			if avatarsInLastRow > 0 {
+				lastRowWidth := float64(avatarsInLastRow) * avatarSpacing - (avatarSpacing - avatarSize)
+				xOffset = (totalWidth - lastRowWidth) / 2
+			}
+		}
+		
+		ls.avatarButtons[i] = &Button{
+			x:       avatarStartX + float64(col)*avatarSpacing + xOffset,
+			y:       avatarStartY + float64(row)*120,  // 120 pixels between rows (avatar + name)
+			width:   avatarSize,
+			height:  avatarSize,
+			text:    "", // No text, we'll draw avatars instead
+			enabled: true,
+		}
+	}
+
 	// Register network handlers
 	nc.RegisterHandler(MsgStartGame, func(msg Message) {
 		ls.waitingForGame = false
 		// Game will be started by the handler in main.go
 	})
 
-	nc.RegisterHandler("player_joined", func(msg Message) {
-		ls.inRoom = true
-		ls.waitingForGame = false
+	nc.RegisterHandler(MessageType("player_joined"), func(msg Message) {
+		// Only set inRoom if we're the one who joined
+		if msg.PlayerID == nc.GetPlayerID() {
+			ls.inRoom = true
+			ls.waitingForGame = false
+			ls.showingRooms = false
+			// Update network client's current room
+			nc.mu.Lock()
+			nc.currentRoom = msg.RoomID
+			nc.mu.Unlock()
+		}
 	})
 
-	nc.RegisterHandler("room_created", func(msg Message) {
+	nc.RegisterHandler(MessageType("room_created"), func(msg Message) {
 		ls.inRoom = true
-		ls.waitingForGame = true
-	})
-
-	nc.RegisterHandler("player_left", func(msg Message) {
-		// Reset lobby state when player leaves
-		ls.inRoom = false
+		ls.waitingForGame = false  // Don't set to true until we actually start the game
 		ls.showingRooms = false
-		ls.waitingForGame = false
+		// Update network client's current room
+		nc.mu.Lock()
+		nc.currentRoom = msg.RoomID
+		nc.mu.Unlock()
 	})
 
-	nc.RegisterHandler("game_ended", func(msg Message) {
+	nc.RegisterHandler(MessageType("player_left"), func(msg Message) {
+		// If we're the one who left, reset state
+		if msg.PlayerID == nc.GetPlayerID() {
+			ls.inRoom = false
+			ls.showingRooms = false
+			ls.waitingForGame = false
+			// Clear network client's current room
+			nc.mu.Lock()
+			nc.currentRoom = ""
+			nc.mu.Unlock()
+		}
+	})
+
+	nc.RegisterHandler(MessageType("game_ended"), func(msg Message) {
 		// Reset lobby state when game ends
-		log.Println("CLIENT: Received game_ended, resetting lobby state")
 		ls.inRoom = false
 		ls.showingRooms = false
 		ls.waitingForGame = false
+		// Clear network client's current room
+		nc.mu.Lock()
+		nc.currentRoom = ""
+		nc.mu.Unlock()
 	})
-
+	
 	return ls
 }
 
@@ -138,6 +200,28 @@ func (ls *LobbyScreen) Reset() {
 
 func (ls *LobbyScreen) Update(gr *GameRoom) error {
 	mx, my := ebiten.CursorPosition()
+
+	if ls.showAvatarSelect {
+		// Avatar selection mode
+		for _, btn := range ls.avatarButtons {
+			btn.hovered = btn.Contains(mx, my)
+		}
+		ls.backButton.hovered = ls.backButton.Contains(mx, my)
+
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			for i, btn := range ls.avatarButtons {
+				if btn.hovered {
+					ls.selectedAvatar = AvatarType(i)
+					ls.networkClient.SetAvatar(i)
+					ls.showAvatarSelect = false
+				}
+			}
+			if ls.backButton.hovered {
+				ls.showAvatarSelect = false
+			}
+		}
+		return nil
+	}
 
 	if ls.inRoom {
 		// In a room - update start button
@@ -169,23 +253,25 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 					rooms := ls.networkClient.GetRooms()
 					availableRooms := make([]RoomInfo, 0)
 					for _, room := range rooms {
-						if room.GameType == ls.selectedGame && !room.Started && room.Players < room.MaxPlayers {
-							availableRooms = append(availableRooms, room)
+						if room.GameType == ls.selectedGame && !room.Started {
+							// For multi-player games, always show if not started
+							// For 2-player games, only show if not full
+							if room.MaxPlayers > 2 || room.Players < room.MaxPlayers {
+								availableRooms = append(availableRooms, room)
+							}
 						}
 					}
 					if i < len(availableRooms) {
+						log.Printf("Joining room %s", availableRooms[i].ID)
 						ls.networkClient.JoinRoom(availableRooms[i].ID)
-						ls.inRoom = true
-						ls.showingRooms = false
+						// Don't set inRoom here - wait for the player_joined message
 					}
 				}
 			}
 			if ls.createRoomButton.hovered {
 				roomName := fmt.Sprintf("%s Room", ls.selectedGame)
-				log.Printf("CLIENT: Creating new room for %s\n", ls.selectedGame)
 				ls.networkClient.CreateRoom(ls.selectedGame, roomName)
-				ls.inRoom = true
-				ls.showingRooms = false
+				// Don't set inRoom here - wait for the room_created message
 			}
 			if ls.backButton.hovered {
 				ls.showingRooms = false
@@ -197,12 +283,21 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 			btn.hovered = btn.Contains(mx, my)
 		}
 
+		// Check if clicked on current avatar (to change it)
+		avatarX := float64(screenWidth) - 100
+		avatarY := float64(screenHeight) - 100
+		if mx >= int(avatarX) && mx <= int(avatarX)+50 && 
+		   my >= int(avatarY) && my <= int(avatarY)+50 {
+			if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+				ls.showAvatarSelect = true
+			}
+		}
+
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 			for i, btn := range ls.createButtons {
 				if btn.hovered {
 					games := []string{"yahtzee", "santorini", "connect_four", "mancala", "memory"}
 					ls.selectedGame = games[i]
-					log.Printf("CLIENT: Player clicked on %s game\n", games[i])
 					// Try to join existing room first, or create new one
 					ls.showRoomsForGame(games[i])
 				}
@@ -219,13 +314,28 @@ func (ls *LobbyScreen) showRoomsForGame(gameType string) {
 	ls.showingRooms = true
 }
 
+func (ls *LobbyScreen) getRoomDisplayText(room RoomInfo) string {
+	// For games that support many players, show range
+	if room.MaxPlayers > 2 {
+		if room.GameType == "yahtzee" || room.GameType == "memory" {
+			return fmt.Sprintf("%s (%d players, 1-%d)", room.Name, room.Players, room.MaxPlayers)
+		}
+	}
+	// For 2-player games, show traditional format
+	return fmt.Sprintf("%s (%d/%d)", room.Name, room.Players, room.MaxPlayers)
+}
+
 func (ls *LobbyScreen) updateRoomButtons() {
 	rooms := ls.networkClient.GetRooms()
 	availableRooms := make([]RoomInfo, 0)
 
 	for _, room := range rooms {
-		if room.GameType == ls.selectedGame && !room.Started && room.Players < room.MaxPlayers {
-			availableRooms = append(availableRooms, room)
+		if room.GameType == ls.selectedGame && !room.Started {
+			// For multi-player games, always show if not started
+			// For 2-player games, only show if not full
+			if room.MaxPlayers > 2 || room.Players < room.MaxPlayers {
+				availableRooms = append(availableRooms, room)
+			}
 		}
 	}
 
@@ -240,7 +350,7 @@ func (ls *LobbyScreen) updateRoomButtons() {
 			y:       startY + float64(i)*70,
 			width:   buttonWidth,
 			height:  buttonHeight,
-			text:    fmt.Sprintf("%s (%d/%d)", availableRooms[i].Name, availableRooms[i].Players, availableRooms[i].MaxPlayers),
+			text:    ls.getRoomDisplayText(availableRooms[i]),
 			enabled: true,
 		}
 	}
@@ -251,7 +361,9 @@ func (ls *LobbyScreen) Draw(screen *ebiten.Image, gr *GameRoom) {
 	DrawKodamaSpirits(screen)
 	DrawOMLogo(screen)
 
-	if ls.inRoom {
+	if ls.showAvatarSelect {
+		ls.drawAvatarSelection(screen)
+	} else if ls.inRoom {
 		ls.drawRoomWaiting(screen)
 	} else if ls.showingRooms {
 		ls.drawRoomList(screen)
@@ -289,6 +401,16 @@ func (ls *LobbyScreen) drawGameSelection(screen *ebiten.Image) {
 	for _, btn := range ls.createButtons {
 		ls.drawButton(screen, btn)
 	}
+
+	// Draw current avatar in bottom right
+	avatarX := float64(screenWidth) - 100
+	avatarY := float64(screenHeight) - 100
+	DrawAvatar(screen, ls.selectedAvatar, float32(avatarX), float32(avatarY), 1)
+	
+	// Draw "Click to change" text
+	changeText := "Click avatar to change"
+	textX := int(avatarX - float64(len(changeText)*3) + 25)
+	ebitenutil.DebugPrintAt(screen, changeText, textX, int(avatarY)-20)
 }
 
 func (ls *LobbyScreen) drawRoomList(screen *ebiten.Image) {
@@ -344,24 +466,49 @@ func (ls *LobbyScreen) drawRoomWaiting(screen *ebiten.Image) {
 	}
 
 	statusY := 200
-	if roomInfo != nil {
-		statusText := fmt.Sprintf("Room: %s", roomInfo.Name)
-		ebitenutil.DebugPrintAt(screen, statusText, screenWidth/2-len(statusText)*3, statusY)
+	if roomInfo == nil {
+		errorText := "Room not found - please go back"
+		ebitenutil.DebugPrintAt(screen, errorText, screenWidth/2-len(errorText)*3, statusY)
+		ls.drawButton(screen, ls.backButton)
+		return
+	}
+	
+	statusText := fmt.Sprintf("Room: %s", roomInfo.Name)
+	ebitenutil.DebugPrintAt(screen, statusText, screenWidth/2-len(statusText)*3, statusY)
 
-		playerText := fmt.Sprintf("Players: %d/%d", roomInfo.Players, roomInfo.MaxPlayers)
-		ebitenutil.DebugPrintAt(screen, playerText, screenWidth/2-len(playerText)*3, statusY+30)
+	playerText := fmt.Sprintf("Players: %d/%d", roomInfo.Players, roomInfo.MaxPlayers)
+	ebitenutil.DebugPrintAt(screen, playerText, screenWidth/2-len(playerText)*3, statusY+30)
 
-		if roomInfo.Players < roomInfo.MaxPlayers {
-			waitText := "Waiting for another player..."
-			ebitenutil.DebugPrintAt(screen, waitText, screenWidth/2-len(waitText)*3, statusY+80)
-		} else if !ls.waitingForGame {
-			readyText := "Ready to start!"
-			ebitenutil.DebugPrintAt(screen, readyText, screenWidth/2-len(readyText)*3, statusY+80)
-			ls.drawButton(screen, ls.startButton)
+	// Check if we can start the game
+	canStart := false
+	if roomInfo.GameType == "yahtzee" || roomInfo.GameType == "memory" {
+		// Multi-player games can start with 1+ players
+		canStart = roomInfo.Players >= 1
+	} else {
+		// 2-player games need exactly 2 players
+		canStart = roomInfo.Players == roomInfo.MaxPlayers
+	}
+	
+	if !canStart {
+		// Only show waiting message for 2-player games
+		waitText := "Waiting for another player..."
+		ebitenutil.DebugPrintAt(screen, waitText, screenWidth/2-len(waitText)*3, statusY+80)
+	} else if !ls.waitingForGame {
+		var readyText string
+		if roomInfo.GameType == "yahtzee" || roomInfo.GameType == "memory" {
+			if roomInfo.Players == 1 {
+				readyText = "Ready to start solo or wait for more players!"
+			} else {
+				readyText = fmt.Sprintf("Ready with %d players! Start or wait for more.", roomInfo.Players)
+			}
 		} else {
-			startingText := "Starting game..."
-			ebitenutil.DebugPrintAt(screen, startingText, screenWidth/2-len(startingText)*3, statusY+80)
+			readyText = "Ready to start!"
 		}
+		ebitenutil.DebugPrintAt(screen, readyText, screenWidth/2-len(readyText)*3, statusY+80)
+		ls.drawButton(screen, ls.startButton)
+	} else {
+		startingText := "Starting game..."
+		ebitenutil.DebugPrintAt(screen, startingText, screenWidth/2-len(startingText)*3, statusY+80)
 	}
 
 	// Player ID
@@ -404,4 +551,60 @@ func (ls *LobbyScreen) drawButton(screen *ebiten.Image, btn *Button) {
 	if btn.enabled {
 		ebitenutil.DebugPrintAt(screen, btn.text, textX+1, textY)
 	}
+}
+
+func (ls *LobbyScreen) drawAvatarSelection(screen *ebiten.Image) {
+	// Title
+	titleWidth := float32(400)
+	titleX := float32(screenWidth/2) - titleWidth/2
+	vector.DrawFilledRect(screen, titleX, 15, titleWidth, 45, color.RGBA{30, 50, 80, 255}, false)
+	vector.StrokeRect(screen, titleX, 15, titleWidth, 45, 2, color.RGBA{100, 150, 220, 255}, false)
+	titleText := "SELECT YOUR AVATAR"
+	titleTextX := int(titleX + (titleWidth-float32(len(titleText)*6))/2)
+	ebitenutil.DebugPrintAt(screen, titleText, titleTextX, 32)
+	ebitenutil.DebugPrintAt(screen, titleText, titleTextX+1, 32)
+
+	// Info text
+	infoText := "Choose your avatar:"
+	infoX := screenWidth/2 - len(infoText)*3
+	ebitenutil.DebugPrintAt(screen, infoText, infoX, 80)
+
+	// Draw avatar options
+	for i := 0; i < int(AvatarNumTypes); i++ {
+		btn := ls.avatarButtons[i]
+		
+		// Draw background
+		bgColor := color.RGBA{40, 40, 50, 255}
+		borderColor := color.RGBA{100, 150, 220, 255}
+		
+		if AvatarType(i) == ls.selectedAvatar {
+			bgColor = color.RGBA{60, 80, 120, 255}
+			borderColor = color.RGBA{255, 220, 100, 255}
+		} else if btn.hovered {
+			bgColor = color.RGBA{50, 60, 80, 255}
+			borderColor = color.RGBA{150, 200, 255, 255}
+		}
+		
+		x := float32(btn.x)
+		y := float32(btn.y)
+		w := float32(btn.width)
+		h := float32(btn.height)
+		
+		vector.DrawFilledRect(screen, x, y, w, h, bgColor, false)
+		vector.StrokeRect(screen, x, y, w, h, 2, borderColor, false)
+		
+		// Draw avatar
+		DrawAvatar(screen, AvatarType(i), x+15, y+15, 1)
+		
+		// Draw avatar name
+		name := GetAvatarName(AvatarType(i))
+		// For longer names, we need to adjust the centering
+		nameWidth := len(name) * 6  // Each character is approximately 6 pixels wide
+		nameX := int(x + w/2 - float32(nameWidth)/2)
+		nameY := int(y + h + 5)
+		ebitenutil.DebugPrintAt(screen, name, nameX, nameY)
+	}
+
+	// Back button
+	ls.drawButton(screen, ls.backButton)
 }

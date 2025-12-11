@@ -25,6 +25,8 @@ const (
 	MsgRoomList     MessageType = "room_list"
 	MsgError        MessageType = "error"
 	MsgChat         MessageType = "chat"
+	MsgSetAvatar    MessageType = "set_avatar"
+	MsgPlayerUpdate MessageType = "player_update"
 )
 
 type Message struct {
@@ -56,7 +58,26 @@ type NetworkClient struct {
 }
 
 func NewNetworkClient(serverURL string) (*NetworkClient, error) {
-	conn, _, err := websocket.DefaultDialer.Dial(serverURL, nil)
+	return NewNetworkClientWithRetry(serverURL, 1, 0)
+}
+
+func NewNetworkClientWithRetry(serverURL string, maxRetries int, retryDelaySeconds int) (*NetworkClient, error) {
+	var conn *websocket.Conn
+	var err error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			log.Printf("Connection attempt %d/%d (waiting %ds)...\n", attempt+1, maxRetries, retryDelaySeconds)
+			time.Sleep(time.Duration(retryDelaySeconds) * time.Second)
+		}
+
+		conn, _, err = websocket.DefaultDialer.Dial(serverURL, nil)
+		if err == nil {
+			break
+		}
+		log.Printf("Connection failed: %v\n", err)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -112,38 +133,13 @@ func (nc *NetworkClient) handleMessage(msg Message) {
 			nc.mu.Lock()
 			nc.rooms = data.Rooms
 			nc.mu.Unlock()
+			log.Printf("Updated room list: %d rooms", len(data.Rooms))
+			for _, room := range data.Rooms {
+				log.Printf("  Room %s: %s (%d/%d players, started=%v)", 
+					room.ID, room.Name, room.Players, room.MaxPlayers, room.Started)
+			}
 		}
 
-	case "room_created":
-		nc.mu.Lock()
-		nc.currentRoom = msg.RoomID
-		nc.mu.Unlock()
-		log.Printf("Created room %s\n", msg.RoomID)
-
-	case "player_joined":
-		log.Printf("Player %s joined room\n", msg.PlayerID)
-		// If we joined, update our current room
-		if msg.PlayerID == nc.playerID {
-			nc.mu.Lock()
-			nc.currentRoom = msg.RoomID
-			nc.mu.Unlock()
-		}
-
-	case "player_left":
-		log.Printf("Player %s left room\n", msg.PlayerID)
-		// If we're the one who left, clear our current room
-		if msg.PlayerID == nc.playerID {
-			nc.mu.Lock()
-			nc.currentRoom = ""
-			nc.mu.Unlock()
-		}
-
-	case "game_ended":
-		log.Printf("Game ended in room %s\n", msg.RoomID)
-		// Clear our current room when game ends
-		nc.mu.Lock()
-		nc.currentRoom = ""
-		nc.mu.Unlock()
 
 	case MsgError:
 		var errData struct {
@@ -257,6 +253,18 @@ func (nc *NetworkClient) IsConnected() bool {
 	nc.mu.RLock()
 	defer nc.mu.RUnlock()
 	return nc.connected
+}
+
+func (nc *NetworkClient) SetAvatar(avatarType int) error {
+	data, _ := json.Marshal(map[string]int{
+		"avatar": avatarType,
+	})
+
+	return nc.SendMessage(Message{
+		Type:      MsgSetAvatar,
+		Data:      data,
+		Timestamp: time.Now(),
+	})
 }
 
 func (nc *NetworkClient) Close() {

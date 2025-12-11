@@ -71,45 +71,113 @@ func (gr *GameRoom) SwitchToOnline() {
 	gr.isOnlineMode = true
 }
 
+func (gr *GameRoom) TryGoOnline() {
+	log.Println("Attempting to connect to server...")
+
+	// Try to connect with retries
+	networkClient, err := NewNetworkClientWithRetry(serverURL, 10, 5)
+	if err != nil {
+		log.Printf("Failed to connect: %v", err)
+		return
+	}
+
+	log.Println("Connected successfully!")
+	gr.networkClient = networkClient
+	gr.lobbyScreen = NewLobbyScreen(networkClient)
+	gr.isOnlineMode = true
+	// Send initial avatar selection
+	networkClient.SetAvatar(0) // Default Human avatar
+
+	// Register handlers
+	networkClient.RegisterHandler(MsgStartGame, func(msg Message) {
+		log.Printf("Starting game: %s\n", msg.GameType)
+
+		// Get player number and game info from server
+		var data struct {
+			PlayerNumber int                      `json:"player_number"`
+			TotalPlayers int                      `json:"total_players"`
+			Players      []map[string]interface{} `json:"players"`
+		}
+		playerNum := 0
+		totalPlayers := 2
+		if err := json.Unmarshal(msg.Data, &data); err == nil {
+			playerNum = data.PlayerNumber
+			totalPlayers = data.TotalPlayers
+		}
+		log.Printf("I am player number: %d (total players: %d)\n", playerNum, totalPlayers)
+
+		// Switch to the appropriate game with network support
+		switch msg.GameType {
+		case "yahtzee":
+			gr.SwitchToGame(NewYahtzeeGameWithPlayers(networkClient, playerNum, data.Players))
+		case "santorini":
+			gr.SwitchToGame(NewSantoriniGameWithNetwork(networkClient, playerNum))
+		case "connect_four":
+			gr.SwitchToGame(NewConnectFourGameWithNetwork(networkClient, playerNum+1)) // Connect Four uses 1/2
+		case "mancala":
+			gr.SwitchToGame(NewMancalaGameWithNetwork(networkClient, playerNum))
+		case "memory":
+			gr.SwitchToGame(NewMemoryGameWithPlayers(networkClient, playerNum, data.Players))
+		}
+		gr.isOnlineMode = false
+	})
+
+	networkClient.RegisterHandler("game_ended", func(msg Message) {
+		log.Println("Game ended - player left")
+		gr.ReturnHome()
+	})
+}
+
 func main() {
+	log.Println("Starting Olive & Millie's Game Room")
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Olive & Millie's Game Room - ONLINE")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	// Connect to server
-	networkClient, err := NewNetworkClient(serverURL)
-	if err != nil {
-		log.Printf("Warning: Could not connect to server: %v", err)
-		log.Println("Continuing in offline mode...")
+	gameRoom := &GameRoom{
+		homeScreen: NewHomeScreen(),
 	}
 
-	gameRoom := &GameRoom{
-		homeScreen:    NewHomeScreen(),
-		networkClient: networkClient,
+	// Try to connect to server (single attempt, no retries)
+	log.Println("Attempting quick connection to server...")
+	networkClient, err := NewNetworkClient(serverURL)
+	if err != nil {
+		log.Printf("Server not available: %v", err)
+		log.Println("Starting in offline mode. Use 'Go Online' button to connect.")
+		gameRoom.networkClient = nil
+		gameRoom.isOnlineMode = false
+	} else {
+		log.Println("Connected to server successfully!")
+		gameRoom.networkClient = networkClient
+		gameRoom.lobbyScreen = NewLobbyScreen(networkClient)
+		gameRoom.isOnlineMode = true
+		// Send initial avatar selection
+		networkClient.SetAvatar(0) // Default Human avatar
 	}
 
 	if networkClient != nil {
-		gameRoom.lobbyScreen = NewLobbyScreen(networkClient)
-		gameRoom.isOnlineMode = true
-
 		// Register handler for when game starts
 		networkClient.RegisterHandler(MsgStartGame, func(msg Message) {
 			log.Printf("Starting game: %s\n", msg.GameType)
 
-			// Get player number from server
+			// Get player number and game info from server
 			var data struct {
-				PlayerNumber int `json:"player_number"`
+				PlayerNumber int                      `json:"player_number"`
+				TotalPlayers int                      `json:"total_players"`
+				Players      []map[string]interface{} `json:"players"`
 			}
 			playerNum := 0
+			totalPlayers := 2
 			if err := json.Unmarshal(msg.Data, &data); err == nil {
 				playerNum = data.PlayerNumber
+				totalPlayers = data.TotalPlayers
 			}
-			log.Printf("I am player number: %d\n", playerNum)
+			log.Printf("I am player number: %d (total players: %d)\n", playerNum, totalPlayers)
 
 			// Switch to the appropriate game with network support
 			switch msg.GameType {
 			case "yahtzee":
-				gameRoom.SwitchToGame(NewYahtzeeGameWithNetwork(networkClient, playerNum))
+				gameRoom.SwitchToGame(NewYahtzeeGameWithPlayers(networkClient, playerNum, data.Players))
 			case "santorini":
 				gameRoom.SwitchToGame(NewSantoriniGameWithNetwork(networkClient, playerNum))
 			case "connect_four":
@@ -117,7 +185,7 @@ func main() {
 			case "mancala":
 				gameRoom.SwitchToGame(NewMancalaGameWithNetwork(networkClient, playerNum))
 			case "memory":
-				gameRoom.SwitchToGame(NewMemoryGameWithNetwork(networkClient, playerNum))
+				gameRoom.SwitchToGame(NewMemoryGameWithPlayers(networkClient, playerNum, data.Players))
 			}
 			gameRoom.isOnlineMode = false
 		})

@@ -31,6 +31,8 @@ const (
 	MsgRoomList     MessageType = "room_list"
 	MsgError        MessageType = "error"
 	MsgChat         MessageType = "chat"
+	MsgSetAvatar    MessageType = "set_avatar"
+	MsgPlayerUpdate MessageType = "player_update"
 )
 
 type Message struct {
@@ -45,6 +47,7 @@ type Message struct {
 type Player struct {
 	ID       string
 	Name     string
+	Avatar   int
 	Conn     *websocket.Conn
 	RoomID   string
 	mu       sync.Mutex
@@ -73,6 +76,16 @@ func NewServer() *Server {
 	}
 }
 
+// Get max players for a game type
+func getMaxPlayers(gameType string) int {
+	switch gameType {
+	case "yahtzee", "memory":
+		return 20
+	default:
+		return 2
+	}
+}
+
 func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -82,9 +95,10 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	playerID := generateID()
 	player := &Player{
-		ID:   playerID,
-		Name: "Player " + playerID[:6],
-		Conn: conn,
+		ID:     playerID,
+		Name:   avatarNames[0], // Default to "Human"
+		Avatar: 0, // Default to human avatar
+		Conn:   conn,
 	}
 
 	s.mu.Lock()
@@ -139,6 +153,7 @@ func (s *Server) handlePlayer(player *Player) {
 
 func (s *Server) handleMessage(player *Player, msg Message) {
 	log.Printf("SERVER: Received message type=%s from player %s\n", msg.Type, player.ID)
+	
 	switch msg.Type {
 	case MsgCreateRoom:
 		s.handleCreateRoom(player, msg)
@@ -152,6 +167,8 @@ func (s *Server) handleMessage(player *Player, msg Message) {
 		s.handleGameMove(player, msg)
 	case MsgChat:
 		s.handleChat(player, msg)
+	case MsgSetAvatar:
+		s.handleSetAvatar(player, msg)
 	default:
 		s.sendError(player, "Unknown message type")
 	}
@@ -177,12 +194,12 @@ func (s *Server) handleCreateRoom(player *Player, msg Message) {
 
 	roomID := generateID()
 	room := &Room{
-		ID:       roomID,
-		Name:     data.RoomName,
-		GameType: data.GameType,
-		Players:  []*Player{player},
-		MaxPlayers: 2, // All games are 2-player
-		Started:  false,
+		ID:         roomID,
+		Name:       data.RoomName,
+		GameType:   data.GameType,
+		Players:    []*Player{player},
+		MaxPlayers: getMaxPlayers(data.GameType),
+		Started:    false,
 	}
 
 	s.rooms[roomID] = room
@@ -290,9 +307,18 @@ func (s *Server) handleStartGame(player *Player, msg Message) {
 	}
 
 	room.mu.Lock()
-	if len(room.Players) != room.MaxPlayers {
+	// For games that support many players (Yahtzee, Memory), allow 1+ players
+	// For 2-player only games, need exactly 2
+	if room.MaxPlayers == 2 && len(room.Players) != 2 {
 		room.mu.Unlock()
-		s.sendError(player, "Need 2 players to start")
+		s.sendError(player, "Need exactly 2 players to start")
+		return
+	}
+	
+	// For multi-player games, need at least 1 player (which we always have)
+	if len(room.Players) < 1 {
+		room.mu.Unlock()
+		s.sendError(player, "Need at least 1 player to start")
 		return
 	}
 
@@ -301,11 +327,24 @@ func (s *Server) handleStartGame(player *Player, msg Message) {
 
 	log.Printf("Game starting in room %s\n", room.ID)
 
-	// Notify each player with their player number
+	// Notify each player with their player number and all player info
 	room.mu.RLock()
+	
+	// Build player info array
+	playerInfos := make([]map[string]interface{}, len(room.Players))
+	for i, p := range room.Players {
+		playerInfos[i] = map[string]interface{}{
+			"id":     p.ID,
+			"name":   p.Name,
+			"avatar": p.Avatar,
+		}
+	}
+	
 	for i, p := range room.Players {
 		playerData, _ := json.Marshal(map[string]interface{}{
 			"player_number": i, // 0 for first player, 1 for second
+			"total_players": len(room.Players),
+			"players":       playerInfos,
 		})
 		s.sendMessage(p, Message{
 			Type:      MsgStartGame,
@@ -352,6 +391,52 @@ func (s *Server) handleChat(player *Player, msg Message) {
 
 	// Broadcast chat to all players in room
 	s.broadcastToRoom(room, msg)
+}
+
+// Avatar names matching client side
+var avatarNames = []string{
+	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Henry",
+}
+
+func (s *Server) handleSetAvatar(player *Player, msg Message) {
+	var data struct {
+		Avatar int `json:"avatar"`
+	}
+	if err := json.Unmarshal(msg.Data, &data); err != nil {
+		s.sendError(player, "Invalid avatar data")
+		return
+	}
+
+	// Update player's avatar and name
+	s.mu.Lock()
+	player.Avatar = data.Avatar
+	// Set player name to avatar name
+	if data.Avatar >= 0 && data.Avatar < len(avatarNames) {
+		player.Name = avatarNames[data.Avatar]
+	}
+	s.mu.Unlock()
+
+	// If player is in a room, notify other players
+	if player.RoomID != "" {
+		s.mu.RLock()
+		room, exists := s.rooms[player.RoomID]
+		s.mu.RUnlock()
+
+		if exists {
+			// Broadcast player update to room with both avatar and name
+			updateData, _ := json.Marshal(map[string]interface{}{
+				"player_id": player.ID,
+				"avatar":    data.Avatar,
+				"name":      player.Name,
+			})
+			s.broadcastToRoom(room, Message{
+				Type:      MsgPlayerUpdate,
+				PlayerID:  player.ID,
+				Data:      updateData,
+				Timestamp: time.Now(),
+			})
+		}
+	}
 }
 
 func (s *Server) removePlayerFromRoom(player *Player) {

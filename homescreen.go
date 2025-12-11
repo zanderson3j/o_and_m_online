@@ -10,7 +10,8 @@ import (
 )
 
 type HomeScreen struct {
-	gameButtons []*Button
+	gameButtons    []*Button
+	goOnlineButton *Button
 }
 
 func NewHomeScreen() *HomeScreen {
@@ -71,6 +72,16 @@ func NewHomeScreen() *HomeScreen {
 		enabled: true,
 	}
 
+	// Add "Go Online" button at the bottom
+	hs.goOnlineButton = &Button{
+		x:       float64(screenWidth/2) - 150,
+		y:       float64(screenHeight) - 80,
+		width:   300,
+		height:  60,
+		text:    "GO ONLINE",
+		enabled: true,
+	}
+
 	return hs
 }
 
@@ -79,6 +90,11 @@ func (hs *HomeScreen) Update(gr *GameRoom) error {
 	x, y := ebiten.CursorPosition()
 	for _, btn := range hs.gameButtons {
 		btn.hovered = btn.Contains(x, y)
+	}
+
+	// Update Go Online button hover state (only show if offline)
+	if !gr.isOnlineMode && hs.goOnlineButton != nil {
+		hs.goOnlineButton.hovered = hs.goOnlineButton.Contains(x, y)
 	}
 
 	// Handle button clicks
@@ -93,6 +109,9 @@ func (hs *HomeScreen) Update(gr *GameRoom) error {
 			gr.SwitchToGame(NewMancalaGame())
 		} else if hs.gameButtons[4].hovered {
 			gr.SwitchToGame(NewMemoryGame())
+		} else if !gr.isOnlineMode && hs.goOnlineButton != nil && hs.goOnlineButton.hovered {
+			// Try to reconnect
+			gr.TryGoOnline()
 		}
 	}
 
@@ -133,8 +152,16 @@ func (hs *HomeScreen) Draw(screen *ebiten.Image, gr *GameRoom) {
 		hs.drawGameButton(screen, btn)
 	}
 
+	// Draw "Go Online" button if in offline mode
+	if !gr.isOnlineMode && hs.goOnlineButton != nil {
+		DrawButton(screen, hs.goOnlineButton)
+	}
+
 	// Instructions
 	instructionText := "Select a game to play!"
+	if !gr.isOnlineMode {
+		instructionText = "Offline Mode - Click 'Go Online' to connect"
+	}
 	instructionX := screenWidth/2 - len(instructionText)*3
 	vector.DrawFilledRect(screen, float32(instructionX-10), 550, float32(len(instructionText)*6+20), 30, color.RGBA{30, 50, 80, 200}, false)
 	ebitenutil.DebugPrintAt(screen, instructionText, instructionX, 560)

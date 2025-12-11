@@ -51,34 +51,124 @@ type MemoryMove struct {
 	CardIndex int `json:"card_index"`
 }
 
+type MemoryPlayer struct {
+	name   string
+	avatar AvatarType
+	score  int
+}
+
 type MemoryGame struct {
 	cards          []*Card
 	flippedIndices []int
 	currentPlayer  int
-	scores         [2]int
+	players        []*MemoryPlayer
 	winner         int
 	gameOver       bool
 	flipDelay      int
 	networkClient  *NetworkClient
-	myPlayerNum    int // 0 or 1
+	myPlayerNum    int
+	numPlayers     int
 }
 
 func NewMemoryGame() *MemoryGame {
 	return NewMemoryGameWithNetwork(nil, 0)
 }
 
-func NewMemoryGameWithNetwork(nc *NetworkClient, playerNum int) *MemoryGame {
+func NewMemoryGameWithPlayers(nc *NetworkClient, playerNum int, playerData []map[string]interface{}) *MemoryGame {
+	numPlayers := len(playerData)
+	if numPlayers == 0 {
+		numPlayers = 2
+	}
+
 	g := &MemoryGame{
 		currentPlayer:  0,
-		scores:         [2]int{0, 0},
-		winner:         0,
+		players:        make([]*MemoryPlayer, numPlayers),
+		winner:         -1,
 		gameOver:       false,
 		flipDelay:      0,
 		flippedIndices: make([]int, 0),
 		networkClient:  nc,
 		myPlayerNum:    playerNum,
+		numPlayers:     numPlayers,
 	}
 
+	// Initialize players from server data
+	for i := 0; i < numPlayers; i++ {
+		name := fmt.Sprintf("Player %d", i+1)
+		avatar := i % int(AvatarNumTypes)
+		
+		if i < len(playerData) {
+			if n, ok := playerData[i]["name"].(string); ok {
+				name = n
+			}
+			if a, ok := playerData[i]["avatar"].(float64); ok {
+				avatar = int(a)
+			}
+		}
+		
+		g.players[i] = &MemoryPlayer{
+			name:   name,
+			avatar: AvatarType(avatar),
+			score:  0,
+		}
+	}
+
+	// Setup game board
+	g.setupBoard(nc)
+
+	// Register network handler for opponent moves
+	if nc != nil {
+		nc.RegisterHandler(MsgGameMove, func(msg Message) {
+			var move MemoryMove
+			if err := json.Unmarshal(msg.Data, &move); err == nil {
+				g.flipCard(move.CardIndex)
+			}
+		})
+	}
+
+	return g
+}
+
+func NewMemoryGameWithNetwork(nc *NetworkClient, playerNum int) *MemoryGame {
+	// Default to 2 players for backward compatibility
+	g := &MemoryGame{
+		currentPlayer:  0,
+		players:        make([]*MemoryPlayer, 2),
+		winner:         -1,
+		gameOver:       false,
+		flipDelay:      0,
+		flippedIndices: make([]int, 0),
+		networkClient:  nc,
+		myPlayerNum:    playerNum,
+		numPlayers:     2,
+	}
+
+	// Initialize default players
+	for i := 0; i < 2; i++ {
+		g.players[i] = &MemoryPlayer{
+			name:   fmt.Sprintf("Player %d", i+1),
+			avatar: AvatarType(i),
+			score:  0,
+		}
+	}
+
+	// Setup game board
+	g.setupBoard(nc)
+
+	// Register network handler for opponent moves
+	if nc != nil {
+		nc.RegisterHandler(MsgGameMove, func(msg Message) {
+			var move MemoryMove
+			if err := json.Unmarshal(msg.Data, &move); err == nil {
+				g.flipCard(move.CardIndex)
+			}
+		})
+	}
+
+	return g
+}
+
+func (g *MemoryGame) setupBoard(nc *NetworkClient) {
 	// Create pairs of cards
 	cardTypes := make([]CardType, mem_totalPairs*2)
 	for i := 0; i < mem_totalPairs; i++ {
@@ -115,18 +205,6 @@ func NewMemoryGameWithNetwork(nc *NetworkClient, playerNum int) *MemoryGame {
 			idx++
 		}
 	}
-
-	// Register network handler for opponent moves
-	if nc != nil {
-		nc.RegisterHandler(MsgGameMove, func(msg Message) {
-			var move MemoryMove
-			if err := json.Unmarshal(msg.Data, &move); err == nil {
-				g.flipCard(move.CardIndex)
-			}
-		})
-	}
-
-	return g
 }
 
 func (g *MemoryGame) Reset() {
@@ -207,7 +285,7 @@ func (g *MemoryGame) flipCard(cardIndex int) {
 			// Match!
 			card1.matched = true
 			card2.matched = true
-			g.scores[g.currentPlayer]++
+			g.players[g.currentPlayer].score++
 			g.flippedIndices = make([]int, 0)
 
 			// Check if game is over
@@ -220,17 +298,21 @@ func (g *MemoryGame) flipCard(cardIndex int) {
 			}
 			if allMatched {
 				g.gameOver = true
-				if g.scores[0] > g.scores[1] {
-					g.winner = 1
-				} else if g.scores[1] > g.scores[0] {
-					g.winner = 2
-				} else {
-					g.winner = 0 // Tie
+				// Find winner
+				maxScore := -1
+				g.winner = -1
+				for i, player := range g.players {
+					if player.score > maxScore {
+						maxScore = player.score
+						g.winner = i
+					} else if player.score == maxScore {
+						g.winner = -1 // Tie
+					}
 				}
 			}
 		} else {
-			// No match, switch player and set delay
-			g.currentPlayer = 1 - g.currentPlayer
+			// No match, switch to next player and set delay
+			g.currentPlayer = (g.currentPlayer + 1) % g.numPlayers
 			g.flipDelay = 60 // 1 second
 		}
 	}
@@ -268,7 +350,7 @@ func (g *MemoryGame) drawGameInfo(screen *ebiten.Image) {
 	if g.gameOver {
 		turnText = "Game Over!"
 	} else {
-		turnText = fmt.Sprintf("Player %d's Turn", g.currentPlayer+1)
+		turnText = fmt.Sprintf("%s's Turn", g.players[g.currentPlayer].name)
 	}
 
 	turnTextX := int(infoX + (infoWidth-float32(len(turnText)*6))/2)
@@ -522,56 +604,129 @@ func (g *MemoryGame) drawSatsuki(screen *ebiten.Image, cx, cy float32) {
 }
 
 func (g *MemoryGame) drawPlayerInfo(screen *ebiten.Image) {
-	cardWidth := float32(320)
-	edgeSpacing := float32(60)
-	gapBetween := screenWidth - 2*edgeSpacing - 2*cardWidth
+	// Dynamic layout based on number of players
+	// Memory board: starts at y=140, 4 rows of 100px cards + 3*5px spacing = 415px total
+	// Board ends at y=555, so player info starts at y=570 for safety
+	availableHeight := 190.0  // From y=570 to y=760
+	availableWidth := float64(screenWidth) - 40  // Leave margins
+	spacing := 5.0
+	
+	var cols, rows int
+	var panelWidth, panelHeight float64
+	
+	// Determine optimal grid layout (with less vertical space)
+	switch {
+	case g.numPlayers <= 2:
+		cols, rows = g.numPlayers, 1
+		panelHeight = 80.0
+	case g.numPlayers <= 4:
+		cols, rows = g.numPlayers, 1
+		panelHeight = 70.0
+	case g.numPlayers <= 6:
+		cols, rows = 3, 2
+		panelHeight = 60.0
+	case g.numPlayers <= 10:
+		cols, rows = 5, 2
+		panelHeight = 55.0
+	case g.numPlayers <= 15:
+		cols, rows = 5, 3
+		panelHeight = 50.0
+	default: // 16-20 players
+		cols, rows = 5, 4
+		panelHeight = 45.0
+	}
+	
+	// Adjust rows based on actual players
+	actualRows := (g.numPlayers + cols - 1) / cols
+	if actualRows < rows {
+		rows = actualRows
+	}
+	
+	// Calculate panel width based on available space and columns
+	panelWidth = (availableWidth - float64(cols-1)*spacing) / float64(cols)
+	if panelWidth > 180 {
+		panelWidth = 180  // Cap max width
+	}
+	
+	// Calculate actual height based on available space
+	maxPanelHeight := (availableHeight - float64(rows-1)*spacing) / float64(rows)
+	if panelHeight > maxPanelHeight {
+		panelHeight = maxPanelHeight
+	}
+	
+	// Center the grid
+	totalWidth := float64(cols)*panelWidth + float64(cols-1)*spacing
+	startX := (float64(screenWidth) - totalWidth) / 2
+	startY := 570.0  // Below the memory board with margin
+	
+	// Draw player panels
+	for i, player := range g.players {
+		col := i % cols
+		row := i / cols
+		x := startX + float64(col)*(panelWidth+spacing)
+		y := startY + float64(row)*(panelHeight+spacing)
+		g.drawPlayerPanel(screen, player, i, x, y, panelWidth, panelHeight)
+	}
+}
 
-	y := float32(600)
-	for i := 0; i < 2; i++ {
-		var x float32
-		if i == 0 {
-			x = edgeSpacing
-		} else {
-			x = edgeSpacing + cardWidth + gapBetween
+func (g *MemoryGame) drawPlayerPanel(screen *ebiten.Image, player *MemoryPlayer, index int, x, y, width, height float64) {
+	panelColor := color.RGBA{30, 50, 80, 255}
+	borderColor := color.RGBA{100, 150, 220, 255}
+	
+	// Highlight current player
+	if index == g.currentPlayer && !g.gameOver {
+		borderColor = color.RGBA{255, 200, 100, 255}
+		panelColor = color.RGBA{50, 70, 100, 255}
+	}
+	
+	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), panelColor, false)
+	vector.StrokeRect(screen, float32(x), float32(y), float32(width), float32(height), 2, borderColor, false)
+	
+	// Dynamic sizing based on panel height
+	avatarSize := height * 0.6
+	if avatarSize > 50 {
+		avatarSize = 50  // Cap max size
+	}
+	avatarScale := float32(avatarSize / 50.0)  // Base avatar is 50x50
+	
+	// Position avatar with consistent padding
+	avatarX := float32(x + 5)
+	avatarY := float32(y + (height-avatarSize)/2)
+	DrawAvatar(screen, player.avatar, avatarX, avatarY, avatarScale)
+	
+	// Text positioning - after avatar with padding
+	textX := int(x + avatarSize + 10)
+	nameY := int(y + height*0.3)
+	scoreY := int(y + height*0.6)
+	
+	// Use smaller font for very compact layouts
+	if height < 70 {
+		// For very small panels, put text on single line
+		combinedText := fmt.Sprintf("%s: %d pairs", player.name, player.score)
+		ebitenutil.DebugPrintAt(screen, combinedText, textX, int(y+height/2-4))
+		if index == g.currentPlayer && !g.gameOver {
+			ebitenutil.DebugPrintAt(screen, combinedText, textX+1, int(y+height/2-4))
 		}
-
-		panelColor := color.RGBA{30, 50, 80, 255}
-		var borderColor color.RGBA
-		if i == g.currentPlayer && !g.gameOver {
-			borderColor = color.RGBA{255, 200, 100, 255}
-		} else if i == 0 {
-			borderColor = color.RGBA{100, 150, 220, 255}
-		} else {
-			borderColor = color.RGBA{200, 160, 120, 255}
+	} else {
+		// Normal two-line display
+		ebitenutil.DebugPrintAt(screen, player.name, textX, nameY)
+		if index == g.currentPlayer && !g.gameOver {
+			ebitenutil.DebugPrintAt(screen, player.name, textX+1, nameY)
 		}
-
-		vector.DrawFilledRect(screen, x, y, 320, 100, panelColor, false)
-		vector.StrokeRect(screen, x, y, 320, 100, 2, borderColor, false)
-
-		if i == 0 {
-			DrawPlayer1Avatar(screen, x+10, y+10, 1.5)
-		} else {
-			DrawPlayer2Avatar(screen, x+10, y+10, 1.5)
-		}
-
-		playerName := fmt.Sprintf("Player %d", i+1)
-		ebitenutil.DebugPrintAt(screen, playerName, int(x+90), int(y+20))
-		ebitenutil.DebugPrintAt(screen, playerName, int(x+91), int(y+20))
-
-		// Show pairs found
-		pairsText := fmt.Sprintf("Pairs: %d", g.scores[i])
-		ebitenutil.DebugPrintAt(screen, pairsText, int(x+90), int(y+45))
-
-		// Show instructions
-		if i == g.currentPlayer && !g.gameOver {
-			ebitenutil.DebugPrintAt(screen, "Your turn!", int(x+90), int(y+65))
+		
+		pairsText := fmt.Sprintf("Pairs: %d", player.score)
+		ebitenutil.DebugPrintAt(screen, pairsText, textX, scoreY)
+		
+		// Show "Your turn!" for current player if space allows
+		if index == g.currentPlayer && !g.gameOver && height >= 90 {
+			ebitenutil.DebugPrintAt(screen, "Your turn!", textX, int(y+height*0.85))
 		}
 	}
 }
 
 func (g *MemoryGame) drawWinner(screen *ebiten.Image) {
 	bannerWidth := float32(450)
-	bannerHeight := float32(60)
+	bannerHeight := float32(80)
 	bannerX := (screenWidth - bannerWidth) / 2
 	bannerY := (screenHeight - bannerHeight) / 2
 
@@ -585,13 +740,19 @@ func (g *MemoryGame) drawWinner(screen *ebiten.Image) {
 	vector.DrawFilledRect(screen, bannerX+bannerWidth+8, bannerY+40, 10, 10, starColor, false)
 
 	var winnerText string
-	if g.winner == 0 {
+	if g.winner == -1 {
 		winnerText = "IT'S A TIE!"
 	} else {
-		winnerText = fmt.Sprintf("WINNER: Player %d", g.winner)
+		winnerText = fmt.Sprintf("WINNER: %s", g.players[g.winner].name)
 	}
 
 	winnerTextX := int(bannerX + (bannerWidth-float32(len(winnerText)*6))/2)
-	ebitenutil.DebugPrintAt(screen, winnerText, winnerTextX, int(bannerY+25))
-	ebitenutil.DebugPrintAt(screen, winnerText, winnerTextX+1, int(bannerY+25))
+	ebitenutil.DebugPrintAt(screen, winnerText, winnerTextX, int(bannerY+20))
+	ebitenutil.DebugPrintAt(screen, winnerText, winnerTextX+1, int(bannerY+20))
+	
+	if g.winner != -1 {
+		scoreText := fmt.Sprintf("Score: %d pairs!", g.players[g.winner].score)
+		scoreTextX := int(bannerX + (bannerWidth-float32(len(scoreText)*6))/2)
+		ebitenutil.DebugPrintAt(screen, scoreText, scoreTextX, int(bannerY+45))
+	}
 }
