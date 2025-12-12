@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -45,22 +46,22 @@ type Message struct {
 }
 
 type Player struct {
-	ID       string
-	Name     string
-	Avatar   int
-	Conn     *websocket.Conn
-	RoomID   string
-	mu       sync.Mutex
+	ID     string
+	Name   string
+	Avatar int
+	Conn   *websocket.Conn
+	RoomID string
+	mu     sync.Mutex
 }
 
 type Room struct {
-	ID       string
-	Name     string
-	GameType string
-	Players  []*Player
+	ID         string
+	Name       string
+	GameType   string
+	Players    []*Player
 	MaxPlayers int
-	Started  bool
-	mu       sync.RWMutex
+	Started    bool
+	mu         sync.RWMutex
 }
 
 type Server struct {
@@ -97,7 +98,7 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 	player := &Player{
 		ID:     playerID,
 		Name:   avatarNames[0], // Default to "Human"
-		Avatar: 0, // Default to human avatar
+		Avatar: 0,              // Default to human avatar
 		Conn:   conn,
 	}
 
@@ -153,7 +154,7 @@ func (s *Server) handlePlayer(player *Player) {
 
 func (s *Server) handleMessage(player *Player, msg Message) {
 	log.Printf("SERVER: Received message type=%s from player %s\n", msg.Type, player.ID)
-	
+
 	switch msg.Type {
 	case MsgCreateRoom:
 		s.handleCreateRoom(player, msg)
@@ -314,7 +315,7 @@ func (s *Server) handleStartGame(player *Player, msg Message) {
 		s.sendError(player, "Need exactly 2 players to start")
 		return
 	}
-	
+
 	// For multi-player games, need at least 1 player (which we always have)
 	if len(room.Players) < 1 {
 		room.mu.Unlock()
@@ -329,7 +330,7 @@ func (s *Server) handleStartGame(player *Player, msg Message) {
 
 	// Notify each player with their player number and all player info
 	room.mu.RLock()
-	
+
 	// Build player info array
 	playerInfos := make([]map[string]interface{}, len(room.Players))
 	for i, p := range room.Players {
@@ -339,7 +340,7 @@ func (s *Server) handleStartGame(player *Player, msg Message) {
 			"avatar": p.Avatar,
 		}
 	}
-	
+
 	for i, p := range room.Players {
 		playerData, _ := json.Marshal(map[string]interface{}{
 			"player_number": i, // 0 for first player, 1 for second
