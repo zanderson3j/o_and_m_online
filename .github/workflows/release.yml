@@ -27,7 +27,11 @@ jobs:
       with:
         go-version: '1.21'
     
+    - name: Download dependencies
+      run: go mod download
+    
     - name: Build for ${{ matrix.name }}
+      working-directory: .
       run: |
         APP_NAME="O&M Game Room"
         VERSION=${GITHUB_REF#refs/tags/v}
@@ -37,8 +41,8 @@ jobs:
         mkdir -p "$APP_BUNDLE/Contents/MacOS"
         mkdir -p "$APP_BUNDLE/Contents/Resources"
         
-        # Build
-        CGO_ENABLED=1 GOOS=darwin GOARCH=${{ matrix.arch }} go build -o "$APP_BUNDLE/Contents/MacOS/game_client" .
+        # Build (let Go detect the architecture)
+        go build -o "$APP_BUNDLE/Contents/MacOS/game_client" .
         
         # Copy resources
         cp resources/Info.plist "$APP_BUNDLE/Contents/"
@@ -83,13 +87,9 @@ jobs:
         path: ./artifacts
     
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        files: artifacts/*/*
         body: |
           ## O&M Game Room Release
           
@@ -101,23 +101,10 @@ jobs:
           1. Download the appropriate DMG for your Mac
           2. Open the DMG file
           3. Drag "O&M Game Room" to your Applications folder
-          4. Launch from Applications or Spotlight
+          4. If you see "app is damaged", double-click `install_helper.command` in the DMG
           
           ### What's New
-          - See commit history for changes
+          - Automatic builds for both Intel and Apple Silicon
+          - Improved installer with ad-hoc signing
         draft: false
         prerelease: false
-    
-    - name: Upload Release Assets
-      run: |
-        for file in artifacts/*/*; do
-          if [[ -f "$file" ]]; then
-            asset_name=$(basename "$file")
-            echo "Uploading $asset_name"
-            curl -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: application/octet-stream" \
-              --data-binary @"$file" \
-              "${{ steps.create_release.outputs.upload_url }}?name=$asset_name"
-          fi
-        done
