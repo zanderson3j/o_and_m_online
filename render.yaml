@@ -2,14 +2,7 @@ services:
   - type: web
     name: o-and-m-online
     runtime: go
-    buildCommand: |
-      # Build server
-      cd server && go build -o server .
-      # Build web client
-      cd .. && mkdir -p server/web
-      GOOS=js GOARCH=wasm go build -o server/web/game.wasm .
-      cp index.html server/web/
-      cp wasm_exec.js server/web/
+    buildCommand: cd server && go build -o server .
     startCommand: cd server && ./server
     envVars:
       - key: PORT

@@ -31,17 +31,17 @@ In separate terminals (one for each player):
 ```
 
 #### Web Client
-1. Build the web version:
+1. Navigate to the web client directory:
    ```bash
-   ./build_wasm.sh
+   cd web_client
    ```
 
-2. Serve the files:
+2. Start a local web server:
    ```bash
-   ./serve_web.sh
+   python3 -m http.server 8001
    ```
 
-3. Open http://localhost:8000 in your browser
+3. Open http://localhost:8001 in your browser
 
 Both clients will automatically connect to `ws://localhost:8080/ws`.
 

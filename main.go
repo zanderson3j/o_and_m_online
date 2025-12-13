@@ -12,6 +12,7 @@ const (
 	screenWidth  = 1024
 	screenHeight = 768
 	serverURL    = "wss://o-and-m-online.onrender.com/ws"
+	// serverURL    = "ws://127.0.0.1:8080/ws" // Local testing
 )
 
 type GameRoom struct {
@@ -83,13 +84,9 @@ func (gr *GameRoom) TryGoOnline() {
 
 	// Connect in goroutine to avoid blocking
 	go func() {
-		// Try to connect with fewer retries for web
+		// Try to connect
 		maxRetries := 10
 		retryDelay := 5
-		if IsWASM {
-			maxRetries = 3
-			retryDelay = 1
-		}
 		
 		networkClient, err := NewNetworkClientWithRetry(serverURL, maxRetries, retryDelay)
 		if err != nil {
@@ -152,11 +149,6 @@ func (gr *GameRoom) TryGoOnline() {
 func main() {
 	log.Println("Starting Olive & Millie's Game Room")
 	
-	if IsWASM {
-		log.Println("Running in WASM mode - optimizing for browser performance")
-		ebiten.SetTPS(20) // Lower TPS for better browser performance
-	}
-	
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Olive & Millie's Game Room - ONLINE")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
@@ -171,14 +163,12 @@ func main() {
 	gameRoom.networkClient = nil
 	gameRoom.isOnlineMode = false
 	
-	// Auto-connect for desktop only
-	if !IsWASM {
-		go func() {
-			time.Sleep(100 * time.Millisecond) // Small delay to ensure UI is ready
-			log.Println("Desktop: Auto-connecting to server...")
-			gameRoom.TryGoOnline()
-		}()
-	}
+	// Auto-connect for desktop
+	go func() {
+		time.Sleep(100 * time.Millisecond) // Small delay to ensure UI is ready
+		log.Println("Desktop: Auto-connecting to server...")
+		gameRoom.TryGoOnline()
+	}()
 
 
 	if err := ebiten.RunGame(gameRoom); err != nil {

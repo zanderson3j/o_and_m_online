@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olive & Millie's Game Room - ONLINE</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2a2a2a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            background-color: #000;
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #gameContainer {
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        .error-message {
+            color: #ff6b6b;
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+        }
+        /* Hide cursor for custom cursor support if needed */
+        #gameCanvas {
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1024" height="768"></canvas>
+    </div>
+    
+    <!-- Core game files -->
+    <script src="js/constants.js"></script>
+    <script src="js/types.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/network.js"></script>
+    
+    <!-- Screens -->
+    <script src="js/homescreen.js"></script>
+    <script src="js/lobby.js"></script>
+    
+    <!-- Games -->
+    <script src="js/games/yahtzee.js"></script>
+    <script src="js/games/santorini.js"></script>
+    <script src="js/games/connect_four.js"></script>
+    <script src="js/games/memory.js"></script>
+    
+    <!-- Avatar system -->
+    <script src="js/avatars.js"></script>
+    
+    <!-- Main game controller -->
+    <script src="js/main.js"></script>
+    
+    <script>
+        // Error handling
+        window.addEventListener('error', (event) => {
+            console.error('Game error:', event.error);
+        });
+        
+        // Start the game when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.gameRoom = new GameRoom();
+                gameRoom.start();
+            });
+        } else {
+            window.gameRoom = new GameRoom();
+            gameRoom.start();
+        }
+    </script>
+</body>
+</html>

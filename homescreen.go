@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -90,17 +91,27 @@ func (hs *HomeScreen) Update(gr *GameRoom) error {
 
 	// Handle button clicks
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		log.Printf("Click at (%d, %d), isOnlineMode=%v", x, y, gr.isOnlineMode)
+		
 		if hs.gameButtons[0].hovered {
+			log.Println("Yahtzee button clicked")
 			gr.SwitchToGame(NewYahtzeeGame())
 		} else if hs.gameButtons[1].hovered {
+			log.Println("Santorini button clicked")
 			gr.SwitchToGame(NewSantoriniGame())
 		} else if hs.gameButtons[2].hovered {
+			log.Println("Connect Four button clicked")
 			gr.SwitchToGame(NewConnectFourGame())
 		} else if hs.gameButtons[3].hovered {
+			log.Println("Memory button clicked")
 			gr.SwitchToGame(NewMemoryGame())
 		} else if !gr.isOnlineMode && hs.goOnlineButton != nil && hs.goOnlineButton.hovered {
+			log.Println("Go Online button clicked!")
 			// Try to reconnect
 			gr.TryGoOnline()
+		} else if gr.isOnlineMode && hs.goOnlineButton != nil && hs.goOnlineButton.hovered {
+			log.Println("Go Online clicked but already online")
 		}
 	}
 
@@ -154,6 +165,7 @@ func (hs *HomeScreen) Draw(screen *ebiten.Image, gr *GameRoom) {
 	instructionX := screenWidth/2 - len(instructionText)*3
 	vector.DrawFilledRect(screen, float32(instructionX-10), 550, float32(len(instructionText)*6+20), 30, color.RGBA{30, 50, 80, 200}, false)
 	ebitenutil.DebugPrintAt(screen, instructionText, instructionX, 560)
+	
 }
 
 func (hs *HomeScreen) drawGameButton(screen *ebiten.Image, btn *Button) {
