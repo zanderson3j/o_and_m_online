@@ -5,7 +5,7 @@ set -e
 
 APP_NAME="O&M Game Room"
 BUNDLE_ID="com.oliveandmillie.gameroom"
-VERSION="1.0.1"
+VERSION="1.0.2"
 
 echo "Building macOS app for current architecture..."
 
