@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 
@@ -63,7 +64,13 @@ func NewNetworkClient(serverURL string) (*NetworkClient, error) {
 
 func NewNetworkClientWithRetry(serverURL string, maxRetries int, retryDelaySeconds int) (*NetworkClient, error) {
 	var conn *websocket.Conn
+	var resp *http.Response
 	var err error
+
+	// Create a dialer with timeout
+	dialer := websocket.Dialer{
+		HandshakeTimeout: 5 * time.Second,
+	}
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
@@ -71,11 +78,16 @@ func NewNetworkClientWithRetry(serverURL string, maxRetries int, retryDelaySecon
 			time.Sleep(time.Duration(retryDelaySeconds) * time.Second)
 		}
 
-		conn, _, err = websocket.DefaultDialer.Dial(serverURL, nil)
+		log.Printf("Attempting to connect to: %s", serverURL)
+		conn, resp, err = dialer.Dial(serverURL, nil)
 		if err == nil {
 			break
 		}
-		log.Printf("Connection failed: %v\n", err)
+		if resp != nil {
+			log.Printf("Connection failed with status %d: %v", resp.StatusCode, err)
+		} else {
+			log.Printf("Connection failed: %v", err)
+		}
 	}
 
 	if err != nil {

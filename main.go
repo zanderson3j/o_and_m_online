@@ -74,56 +74,77 @@ func (gr *GameRoom) SwitchToOnline() {
 func (gr *GameRoom) TryGoOnline() {
 	log.Println("Attempting to connect to server...")
 
-	// Try to connect with retries
-	networkClient, err := NewNetworkClientWithRetry(serverURL, 10, 5)
-	if err != nil {
-		log.Printf("Failed to connect: %v", err)
-		return
+	// Show connecting state immediately
+	if gr.homeScreen != nil && gr.homeScreen.goOnlineButton != nil {
+		gr.homeScreen.goOnlineButton.text = "CONNECTING..."
+		gr.homeScreen.goOnlineButton.enabled = false
 	}
 
-	log.Println("Connected successfully!")
-	gr.networkClient = networkClient
-	gr.lobbyScreen = NewLobbyScreen(networkClient)
-	gr.isOnlineMode = true
-	// Send initial avatar selection
-	networkClient.SetAvatar(0) // Default Human avatar
-
-	// Register handlers
-	networkClient.RegisterHandler(MsgStartGame, func(msg Message) {
-		log.Printf("Starting game: %s\n", msg.GameType)
-
-		// Get player number and game info from server
-		var data struct {
-			PlayerNumber int                      `json:"player_number"`
-			TotalPlayers int                      `json:"total_players"`
-			Players      []map[string]interface{} `json:"players"`
+	// Connect in goroutine to avoid blocking
+	go func() {
+		// Try to connect with fewer retries for web
+		maxRetries := 10
+		retryDelay := 5
+		if IsWASM {
+			maxRetries = 3
+			retryDelay = 1
 		}
-		playerNum := 0
-		totalPlayers := 2
-		if err := json.Unmarshal(msg.Data, &data); err == nil {
-			playerNum = data.PlayerNumber
-			totalPlayers = data.TotalPlayers
+		
+		networkClient, err := NewNetworkClientWithRetry(serverURL, maxRetries, retryDelay)
+		if err != nil {
+			log.Printf("Failed to connect: %v", err)
+			// Reset button
+			if gr.homeScreen != nil && gr.homeScreen.goOnlineButton != nil {
+				gr.homeScreen.goOnlineButton.text = "GO ONLINE"
+				gr.homeScreen.goOnlineButton.enabled = true
+			}
+			return
 		}
-		log.Printf("I am player number: %d (total players: %d)\n", playerNum, totalPlayers)
 
-		// Switch to the appropriate game with network support
-		switch msg.GameType {
-		case "yahtzee":
-			gr.SwitchToGame(NewYahtzeeGameWithPlayers(networkClient, playerNum, data.Players))
-		case "santorini":
-			gr.SwitchToGame(NewSantoriniGameWithPlayers(networkClient, playerNum, data.Players))
-		case "connect_four":
-			gr.SwitchToGame(NewConnectFourGameWithPlayers(networkClient, playerNum, data.Players))
-		case "memory":
-			gr.SwitchToGame(NewMemoryGameWithPlayers(networkClient, playerNum, data.Players))
-		}
-		gr.isOnlineMode = false
-	})
+		log.Println("Connected successfully!")
+		gr.networkClient = networkClient
+		gr.lobbyScreen = NewLobbyScreen(networkClient)
+		gr.isOnlineMode = true
+		// Send initial avatar selection
+		networkClient.SetAvatar(0) // Default Human avatar
 
-	networkClient.RegisterHandler("game_ended", func(msg Message) {
-		log.Println("Game ended - player left")
-		gr.ReturnHome()
-	})
+		// Register handlers
+		networkClient.RegisterHandler(MsgStartGame, func(msg Message) {
+			log.Printf("Starting game: %s\n", msg.GameType)
+
+			// Get player number and game info from server
+			var data struct {
+				PlayerNumber int                      `json:"player_number"`
+				TotalPlayers int                      `json:"total_players"`
+				Players      []map[string]interface{} `json:"players"`
+			}
+			playerNum := 0
+			totalPlayers := 2
+			if err := json.Unmarshal(msg.Data, &data); err == nil {
+				playerNum = data.PlayerNumber
+				totalPlayers = data.TotalPlayers
+			}
+			log.Printf("I am player number: %d (total players: %d)\n", playerNum, totalPlayers)
+
+			// Switch to the appropriate game with network support
+			switch msg.GameType {
+			case "yahtzee":
+				gr.SwitchToGame(NewYahtzeeGameWithPlayers(networkClient, playerNum, data.Players))
+			case "santorini":
+				gr.SwitchToGame(NewSantoriniGameWithPlayers(networkClient, playerNum, data.Players))
+			case "connect_four":
+				gr.SwitchToGame(NewConnectFourGameWithPlayers(networkClient, playerNum, data.Players))
+			case "memory":
+				gr.SwitchToGame(NewMemoryGameWithPlayers(networkClient, playerNum, data.Players))
+			}
+			gr.isOnlineMode = false
+		})
+
+		networkClient.RegisterHandler("game_ended", func(msg Message) {
+			log.Println("Game ended - player left")
+			gr.ReturnHome()
+		})
+	}()
 }
 
 
@@ -145,30 +166,20 @@ func main() {
 	}
 
 	// Try to connect to server (single attempt, no retries)
-	var networkClient *NetworkClient
-	var err error
-	
-	if IsWASM {
-		// For WASM, start in offline mode and let user click "Go Online"
-		log.Println("Web version - starting in offline mode. Click 'Go Online' to connect.")
+	log.Println("Attempting quick connection to server...")
+	networkClient, err := NewNetworkClient(serverURL)
+	if err != nil {
+		log.Printf("Server not available: %v", err)
+		log.Println("Starting in offline mode. Use 'Go Online' button to connect.")
 		gameRoom.networkClient = nil
 		gameRoom.isOnlineMode = false
 	} else {
-		log.Println("Attempting quick connection to server...")
-		networkClient, err = NewNetworkClient(serverURL)
-		if err != nil {
-			log.Printf("Server not available: %v", err)
-			log.Println("Starting in offline mode. Use 'Go Online' button to connect.")
-			gameRoom.networkClient = nil
-			gameRoom.isOnlineMode = false
-		} else {
-			log.Println("Connected to server successfully!")
-			gameRoom.networkClient = networkClient
-			gameRoom.lobbyScreen = NewLobbyScreen(networkClient)
-			gameRoom.isOnlineMode = true
-			// Send initial avatar selection
-			networkClient.SetAvatar(0) // Default Human avatar
-		}
+		log.Println("Connected to server successfully!")
+		gameRoom.networkClient = networkClient
+		gameRoom.lobbyScreen = NewLobbyScreen(networkClient)
+		gameRoom.isOnlineMode = true
+		// Send initial avatar selection
+		networkClient.SetAvatar(0) // Default Human avatar
 	}
 
 	if networkClient != nil {

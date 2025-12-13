@@ -13,7 +13,10 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for now
+		// Log origin for debugging
+		origin := r.Header.Get("Origin")
+		log.Printf("WebSocket upgrade request from origin: %s", origin)
+		return true // Allow all origins
 	},
 }
 
