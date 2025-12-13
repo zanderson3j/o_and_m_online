@@ -126,31 +126,49 @@ func (gr *GameRoom) TryGoOnline() {
 	})
 }
 
+
 func main() {
 	log.Println("Starting Olive & Millie's Game Room")
+	
+	if IsWASM {
+		log.Println("Running in WASM mode - optimizing for browser performance")
+		ebiten.SetTPS(20) // Lower TPS for better browser performance
+	}
+	
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Olive & Millie's Game Room - ONLINE")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ebiten.SetVsyncEnabled(true)
 
 	gameRoom := &GameRoom{
 		homeScreen: NewHomeScreen(),
 	}
 
 	// Try to connect to server (single attempt, no retries)
-	log.Println("Attempting quick connection to server...")
-	networkClient, err := NewNetworkClient(serverURL)
-	if err != nil {
-		log.Printf("Server not available: %v", err)
-		log.Println("Starting in offline mode. Use 'Go Online' button to connect.")
+	var networkClient *NetworkClient
+	var err error
+	
+	if IsWASM {
+		// For WASM, start in offline mode and let user click "Go Online"
+		log.Println("Web version - starting in offline mode. Click 'Go Online' to connect.")
 		gameRoom.networkClient = nil
 		gameRoom.isOnlineMode = false
 	} else {
-		log.Println("Connected to server successfully!")
-		gameRoom.networkClient = networkClient
-		gameRoom.lobbyScreen = NewLobbyScreen(networkClient)
-		gameRoom.isOnlineMode = true
-		// Send initial avatar selection
-		networkClient.SetAvatar(0) // Default Human avatar
+		log.Println("Attempting quick connection to server...")
+		networkClient, err = NewNetworkClient(serverURL)
+		if err != nil {
+			log.Printf("Server not available: %v", err)
+			log.Println("Starting in offline mode. Use 'Go Online' button to connect.")
+			gameRoom.networkClient = nil
+			gameRoom.isOnlineMode = false
+		} else {
+			log.Println("Connected to server successfully!")
+			gameRoom.networkClient = networkClient
+			gameRoom.lobbyScreen = NewLobbyScreen(networkClient)
+			gameRoom.isOnlineMode = true
+			// Send initial avatar selection
+			networkClient.SetAvatar(0) // Default Human avatar
+		}
 	}
 
 	if networkClient != nil {

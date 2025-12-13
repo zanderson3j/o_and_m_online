@@ -2,12 +2,16 @@ package main
 
 import (
 	"image/color"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
+
+// isWASM is defined in main.go
+var IsWASM = runtime.GOOS == "js" && runtime.GOARCH == "wasm"
 
 // GameInterface defines the interface all games must implement
 type GameInterface interface {
@@ -42,6 +46,14 @@ func IsLogoClicked() bool {
 
 // Draw forest background - shared across all screens
 func DrawForestBackground(screen *ebiten.Image) {
+	if IsWASM {
+		// Simplified background for better WASM performance
+		vector.DrawFilledRect(screen, 0, 0, screenWidth, screenHeight, color.RGBA{30, 55, 95, 255}, false)
+		// Simple ground
+		vector.DrawFilledRect(screen, 0, 400, screenWidth, screenHeight-400, color.RGBA{20, 80, 80, 255}, false)
+		return
+	}
+	
 	// Sky gradient
 	skyTop := color.RGBA{20, 40, 80, 255}
 	skyBottom := color.RGBA{40, 70, 110, 255}
@@ -106,6 +118,11 @@ func DrawForestBackground(screen *ebiten.Image) {
 
 // Draw kodama spirits - shared across all screens
 func DrawKodamaSpirits(screen *ebiten.Image) {
+	if IsWASM {
+		// Skip kodama spirits for better WASM performance
+		return
+	}
+	
 	kodamaColor := color.RGBA{200, 255, 220, 200}
 	kodamaGlow := color.RGBA{150, 255, 200, 100}
 

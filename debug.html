@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Olive & Millie's Game Room</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2a2a2a;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        #gameContainer {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        #debugPanel {
+            width: 300px;
+            background-color: #1a1a1a;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        #debugLog {
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        canvas {
+            display: block;
+        }
+        #loadingText {
+            position: absolute;
+            color: #ffffff;
+            font-size: 24px;
+            text-align: center;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .info {
+            color: #6bb6ff;
+        }
+        button {
+            margin: 10px 0;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="gameContainer">
+            <div id="loadingText">Loading game...</div>
+        </div>
+        <div id="debugPanel">
+            <h3>Debug Console</h3>
+            <button onclick="clearDebug()">Clear</button>
+            <button onclick="location.reload()">Reload</button>
+            <div id="debugLog"></div>
+        </div>
+    </div>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        const debugLog = document.getElementById('debugLog');
+        let logBuffer = [];
+        
+        function addDebugMessage(msg, type = 'info') {
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            const message = `[${timestamp}] ${msg}\n`;
+            logBuffer.push({message, type});
+            
+            // Keep only last 1000 messages
+            if (logBuffer.length > 1000) {
+                logBuffer.shift();
+            }
+            
+            updateDebugDisplay();
+        }
+        
+        function updateDebugDisplay() {
+            debugLog.innerHTML = logBuffer.map(item => 
+                `<span class="${item.type}">${item.message}</span>`
+            ).join('');
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+        
+        function clearDebug() {
+            logBuffer = [];
+            updateDebugDisplay();
+        }
+        
+        // Override console methods to capture logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addDebugMessage(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addDebugMessage('ERROR: ' + args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addDebugMessage('WARN: ' + args.join(' '), 'warning');
+        };
+        
+        // Capture WebSocket events
+        const originalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+            addDebugMessage(`WebSocket connecting to: ${url}`, 'info');
+            
+            const ws = new originalWebSocket(url, protocols);
+            
+            ws.addEventListener('open', function() {
+                addDebugMessage('WebSocket connected!', 'info');
+            });
+            
+            ws.addEventListener('close', function(e) {
+                addDebugMessage(`WebSocket closed: code=${e.code}, reason=${e.reason}`, 'error');
+            });
+            
+            ws.addEventListener('error', function(e) {
+                addDebugMessage('WebSocket error occurred', 'error');
+            });
+            
+            return ws;
+        };
+        
+        // Load the game
+        const go = new Go();
+        
+        async function loadGame() {
+            try {
+                const loadingText = document.getElementById('loadingText');
+                
+                addDebugMessage('Starting game load...', 'info');
+                loadingText.textContent = 'Loading game files...';
+                
+                const response = await fetch('game.wasm');
+                addDebugMessage(`WASM fetch status: ${response.status}`, 'info');
+                
+                const result = await WebAssembly.instantiateStreaming(response, go.importObject);
+                
+                addDebugMessage('WASM loaded successfully', 'info');
+                loadingText.textContent = 'Starting game...';
+                
+                await go.run(result.instance);
+                
+                loadingText.style.display = 'none';
+                addDebugMessage('Game started!', 'info');
+                
+            } catch (error) {
+                console.error('Error loading game:', error);
+                const container = document.getElementById('gameContainer');
+                container.innerHTML = `
+                    <div class="error">
+                        <h2>Failed to load game</h2>
+                        <p>${error.message}</p>
+                        <p>Check the debug panel for details</p>
+                    </div>
+                `;
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadGame);
+        } else {
+            loadGame();
+        }
+    </script>
+</body>
+</html>
