@@ -249,7 +249,7 @@ func (g *ConnectFourGame) drawGameInfo(screen *ebiten.Image) {
 
 	var phaseText string
 	if g.winner == 0 {
-		phaseText = fmt.Sprintf("Player %d's Turn", g.currentPlayer)
+		phaseText = fmt.Sprintf("%s's Turn", g.players[g.currentPlayer-1].name)
 	} else {
 		phaseText = "Game Over"
 	}

@@ -114,8 +114,6 @@ func (gr *GameRoom) TryGoOnline() {
 			gr.SwitchToGame(NewSantoriniGameWithPlayers(networkClient, playerNum, data.Players))
 		case "connect_four":
 			gr.SwitchToGame(NewConnectFourGameWithPlayers(networkClient, playerNum, data.Players))
-		case "mancala":
-			gr.SwitchToGame(NewMancalaGameWithNetwork(networkClient, playerNum))
 		case "memory":
 			gr.SwitchToGame(NewMemoryGameWithPlayers(networkClient, playerNum, data.Players))
 		}
@@ -182,8 +180,6 @@ func main() {
 				gameRoom.SwitchToGame(NewSantoriniGameWithPlayers(networkClient, playerNum, data.Players))
 			case "connect_four":
 				gameRoom.SwitchToGame(NewConnectFourGameWithPlayers(networkClient, playerNum, data.Players))
-			case "mancala":
-				gameRoom.SwitchToGame(NewMancalaGameWithNetwork(networkClient, playerNum))
 			case "memory":
 				gameRoom.SwitchToGame(NewMemoryGameWithPlayers(networkClient, playerNum, data.Players))
 			}

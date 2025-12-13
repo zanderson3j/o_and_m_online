@@ -16,14 +16,14 @@ type HomeScreen struct {
 
 func NewHomeScreen() *HomeScreen {
 	hs := &HomeScreen{
-		gameButtons: make([]*Button, 5),
+		gameButtons: make([]*Button, 4),
 	}
 
-	// Create game selection buttons - 2x3 grid (5 games)
+	// Create game selection buttons - 2x2 grid (4 games)
 	buttonWidth := 280.0
 	buttonHeight := 90.0
 	startX := float64(screenWidth/2) - buttonWidth - 20
-	startY := 180.0
+	startY := 250.0
 	spacingX := buttonWidth + 40.0
 	spacingY := buttonHeight + 20.0
 
@@ -57,15 +57,6 @@ func NewHomeScreen() *HomeScreen {
 	hs.gameButtons[3] = &Button{
 		x:       startX + spacingX,
 		y:       startY + spacingY,
-		width:   buttonWidth,
-		height:  buttonHeight,
-		text:    "MANCALA",
-		enabled: true,
-	}
-
-	hs.gameButtons[4] = &Button{
-		x:       float64(screenWidth/2) - buttonWidth/2,
-		y:       startY + spacingY*2,
 		width:   buttonWidth,
 		height:  buttonHeight,
 		text:    "MEMORY MATCH",
@@ -106,8 +97,6 @@ func (hs *HomeScreen) Update(gr *GameRoom) error {
 		} else if hs.gameButtons[2].hovered {
 			gr.SwitchToGame(NewConnectFourGame())
 		} else if hs.gameButtons[3].hovered {
-			gr.SwitchToGame(NewMancalaGame())
-		} else if hs.gameButtons[4].hovered {
 			gr.SwitchToGame(NewMemoryGame())
 		} else if !gr.isOnlineMode && hs.goOnlineButton != nil && hs.goOnlineButton.hovered {
 			// Try to reconnect

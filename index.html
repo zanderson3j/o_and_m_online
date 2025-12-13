@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olive & Millie's Game Room</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2a2a2a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            background-color: #1a1a1a;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+        #loadingText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 24px;
+            text-align: center;
+        }
+        .error {
+            color: #ff6b6b;
+            padding: 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+        .info {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="loadingText">Loading game...</div>
+    </div>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        // Ebiten specific setup
+        const go = new Go();
+        
+        async function loadGame() {
+            try {
+                const loadingText = document.getElementById('loadingText');
+                
+                // Load the WASM file
+                loadingText.textContent = 'Loading game files...';
+                const result = await WebAssembly.instantiateStreaming(
+                    fetch('game.wasm'),
+                    go.importObject
+                );
+                
+                // Run the Go program
+                loadingText.textContent = 'Starting game...';
+                await go.run(result.instance);
+                
+                // Hide loading text once game starts
+                loadingText.style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error loading game:', error);
+                const container = document.getElementById('gameContainer');
+                container.innerHTML = `
+                    <div class="error">
+                        <h2>Failed to load game</h2>
+                        <p>${error.message}</p>
+                        <p>Please ensure WebAssembly is supported in your browser.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Start loading when page is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadGame);
+        } else {
+            loadGame();
+        }
+    </script>
+</body>
+</html>

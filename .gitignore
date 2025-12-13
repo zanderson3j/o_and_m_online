@@ -1,0 +1,23 @@
+# Binaries
+game_client
+game_room
+game_room_online
+server/server
+server/game-server
+server/olive_and_millies_game_room
+
+# WASM build (but not in server/web for Render)
+game.wasm
+!server/web/game.wasm
+
+# OS files
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/
+
+# Go build cache
+*.exe
+*.test
+*.out

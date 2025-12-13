@@ -4,10 +4,11 @@ A collection of 2-player games with online multiplayer support using websockets.
 
 ## Features
 
-- **5 Games**: Yahtzee, Santorini, Connect Four, Mancala, Memory Match
+- **4 Games**: Yahtzee, Santorini, Connect Four, Memory Match
 - **Online Multiplayer**: Play with friends over the network
 - **Lobby System**: Create or join rooms for each game type
 - **Studio Ghibli Theme**: Whimsical forest aesthetic with kodama spirits
+- **Cross-Platform**: Desktop app and web browser support
 
 ## How to Run
 
@@ -22,13 +23,27 @@ The server will start on port 8080.
 
 ### 2. Start the Client(s)
 
+#### Desktop Client
 In separate terminals (one for each player):
 
 ```bash
 ./game_room_online
 ```
 
-The client will automatically connect to `ws://localhost:8080/ws`.
+#### Web Client
+1. Build the web version:
+   ```bash
+   ./build_wasm.sh
+   ```
+
+2. Serve the files:
+   ```bash
+   ./serve_web.sh
+   ```
+
+3. Open http://localhost:8000 in your browser
+
+Both clients will automatically connect to `ws://localhost:8080/ws`.
 
 ## How to Play
 

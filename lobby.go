@@ -30,7 +30,7 @@ type LobbyScreen struct {
 func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 	ls := &LobbyScreen{
 		networkClient:  nc,
-		createButtons:  make([]*Button, 5),
+		createButtons:  make([]*Button, 4),
 		roomButtons:    make([]*Button, 0),
 		avatarButtons:  make([]*Button, int(AvatarNumTypes)),
 		selectedAvatar: AvatarHuman,
@@ -38,27 +38,20 @@ func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 		inRoom:         false,
 	}
 
-	// Create buttons for each game type (5 games)
-	games := []string{"YAHTZEE", "SANTORINI", "CONNECT FOUR", "MANCALA", "MEMORY MATCH"}
+	// Create buttons for each game type (4 games)
+	games := []string{"YAHTZEE", "SANTORINI", "CONNECT FOUR", "MEMORY MATCH"}
 	buttonWidth := 280.0
 	buttonHeight := 90.0
 	startX := float64(screenWidth/2) - buttonWidth - 20
-	startY := 180.0
+	startY := 250.0
 	spacingX := buttonWidth + 40.0
 	spacingY := buttonHeight + 20.0
 
 	for i, game := range games {
-		var x, y float64
-		if i < 4 {
-			row := i / 2
-			col := i % 2
-			x = startX + float64(col)*spacingX
-			y = startY + float64(row)*spacingY
-		} else {
-			// Center the 5th button
-			x = float64(screenWidth/2) - buttonWidth/2
-			y = startY + spacingY*2
-		}
+		row := i / 2
+		col := i % 2
+		x := startX + float64(col)*spacingX
+		y := startY + float64(row)*spacingY
 
 		ls.createButtons[i] = &Button{
 			x:       x,
@@ -296,7 +289,7 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 			for i, btn := range ls.createButtons {
 				if btn.hovered {
-					games := []string{"yahtzee", "santorini", "connect_four", "mancala", "memory"}
+					games := []string{"yahtzee", "santorini", "connect_four", "memory"}
 					ls.selectedGame = games[i]
 					// Try to join existing room first, or create new one
 					ls.showRoomsForGame(games[i])

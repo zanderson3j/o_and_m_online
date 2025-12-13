@@ -614,6 +614,20 @@ func main() {
 
 	http.HandleFunc("/ws", server.handleConnection)
 
+	// Serve static files for web client
+	// Check if web directory exists
+	webDir := "./web"
+	if _, err := os.Stat(webDir); err == nil {
+		fs := http.FileServer(http.Dir(webDir))
+		http.Handle("/", fs)
+		log.Printf("Serving web client from %s", webDir)
+	} else {
+		// Fallback - just serve a simple message
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("Game server is running. Use a game client to connect."))
+		})
+	}
+
 	// Use PORT env variable if available (for Render), otherwise 8080
 	port := os.Getenv("PORT")
 	if port == "" {
