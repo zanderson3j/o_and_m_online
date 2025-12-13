@@ -1,6 +1,6 @@
 # Olive & Millie's Game Room - Online Multiplayer
 
-A collection of 2-player games with online multiplayer support using websockets.
+A collection of multiplayer games with online support using WebSockets.
 
 ## Features
 
@@ -8,7 +8,7 @@ A collection of 2-player games with online multiplayer support using websockets.
 - **Online Multiplayer**: Play with friends over the network
 - **Lobby System**: Create or join rooms for each game type
 - **Studio Ghibli Theme**: Whimsical forest aesthetic with kodama spirits
-- **Cross-Platform**: Desktop app and web browser support
+- **Cross-Platform Desktop Client**: Built with Go and Ebiten
 
 ## How to Run
 
@@ -21,29 +21,15 @@ cd server
 
 The server will start on port 8080.
 
-### 2. Start the Client(s)
+### 2. Start the Desktop Client
 
-#### Desktop Client
 In separate terminals (one for each player):
 
 ```bash
 ./game_room_online
 ```
 
-#### Web Client
-1. Navigate to the web client directory:
-   ```bash
-   cd web_client
-   ```
-
-2. Start a local web server:
-   ```bash
-   python3 -m http.server 8001
-   ```
-
-3. Open http://localhost:8001 in your browser
-
-Both clients will automatically connect to `ws://localhost:8080/ws`.
+The client will automatically connect to `ws://localhost:8080/ws`.
 
 ## How to Play
 
