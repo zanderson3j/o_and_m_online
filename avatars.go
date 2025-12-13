@@ -29,7 +29,7 @@ const (
 )
 
 var avatarNames = []string{
-	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Henry",
+	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Hen-ry",
 }
 
 func GetAvatarName(avatarType AvatarType) string {
@@ -271,7 +271,7 @@ func DrawMillipedeAvatar(screen *ebiten.Image, x, y, scale float32) {
 	// Long segmented body
 	segmentColor1 := color.RGBA{200, 100, 50, 255}
 	segmentColor2 := color.RGBA{150, 80, 40, 255}
-	
+
 	// Body segments (curved)
 	for i := 0; i < 8; i++ {
 		var segColor color.RGBA
@@ -280,8 +280,8 @@ func DrawMillipedeAvatar(screen *ebiten.Image, x, y, scale float32) {
 		} else {
 			segColor = segmentColor2
 		}
-		x_offset := float32(i) * 4*p
-		y_offset := float32(i) * 5*p
+		x_offset := float32(i) * 4 * p
+		y_offset := float32(i) * 5 * p
 		// Main segment
 		vector.DrawFilledRect(screen, x+10*p+x_offset, y+10*p+y_offset, 12*p, 8*p, segColor, false)
 		// Legs (multiple per segment)
@@ -394,7 +394,7 @@ func DrawPuppyAvatar(screen *ebiten.Image, x, y, scale float32) {
 	// Left ear
 	vector.DrawFilledRect(screen, x+8*p, y+20*p, 8*p, 14*p, earColor, false)
 	vector.DrawFilledRect(screen, x+6*p, y+24*p, 4*p, 10*p, earColor, false)
-	// Right ear  
+	// Right ear
 	vector.DrawFilledRect(screen, x+34*p, y+20*p, 8*p, 14*p, earColor, false)
 	vector.DrawFilledRect(screen, x+40*p, y+24*p, 4*p, 10*p, earColor, false)
 
@@ -434,7 +434,7 @@ func DrawPuppyAvatar(screen *ebiten.Image, x, y, scale float32) {
 	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{255, 180, 200, 255}, false)
 }
 
-// Draw Tiger avatar  
+// Draw Tiger avatar
 func DrawTigerAvatar(screen *ebiten.Image, x, y, scale float32) {
 	p := float32(1) * scale
 

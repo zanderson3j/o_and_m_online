@@ -28,6 +28,7 @@ type Cell struct {
 type SantoriniPlayer struct {
 	id      int
 	name    string
+	avatar  AvatarType
 	workers [2]*Worker
 }
 
@@ -57,6 +58,10 @@ func NewSantoriniGame() *SantoriniGame {
 }
 
 func NewSantoriniGameWithNetwork(nc *NetworkClient, playerNum int) *SantoriniGame {
+	return NewSantoriniGameWithPlayers(nc, playerNum, nil)
+}
+
+func NewSantoriniGameWithPlayers(nc *NetworkClient, playerNum int, playerData []map[string]interface{}) *SantoriniGame {
 	boardWidth := float32(boardSize * cellSize)
 	boardHeight := float32(boardSize * cellSize)
 
@@ -81,8 +86,22 @@ func NewSantoriniGameWithNetwork(nc *NetworkClient, playerNum int) *SantoriniGam
 		}
 	}
 
-	g.players[0] = &SantoriniPlayer{id: 0, name: "Player 1", workers: [2]*Worker{}}
-	g.players[1] = &SantoriniPlayer{id: 1, name: "Player 2", workers: [2]*Worker{}}
+	// Initialize players with server data
+	for i := 0; i < 2; i++ {
+		name := fmt.Sprintf("Player %d", i+1)
+		avatar := i % int(AvatarNumTypes)
+
+		if playerData != nil && i < len(playerData) {
+			if n, ok := playerData[i]["name"].(string); ok {
+				name = n
+			}
+			if a, ok := playerData[i]["avatar"].(float64); ok {
+				avatar = int(a)
+			}
+		}
+
+		g.players[i] = &SantoriniPlayer{id: i, name: name, avatar: AvatarType(avatar), workers: [2]*Worker{}}
+	}
 
 	// Register network handler
 	if nc != nil {
@@ -404,11 +423,7 @@ func (g *SantoriniGame) drawWorkers(screen *ebiten.Image) {
 				x := g.boardOffsetX + float32(worker.x)*cellSize + cellSize/2
 				y := g.boardOffsetY + float32(worker.y)*cellSize + cellSize/2
 
-				if player.id == 0 {
-					DrawPlayer1Avatar(screen, x-25, y-25, 1.0)
-				} else {
-					DrawPlayer2Avatar(screen, x-25, y-25, 1.0)
-				}
+				DrawAvatar(screen, player.avatar, x-25, y-25, 1.0)
 
 				if g.selectedWorker == worker {
 					vector.StrokeRect(screen, x-27, y-27, 54, 54, 3, color.RGBA{255, 255, 100, 255}, false)
@@ -442,11 +457,7 @@ func (g *SantoriniGame) drawPlayerInfo(screen *ebiten.Image) {
 		}
 		vector.DrawFilledRect(screen, x, y, 320, 100, panelColor, false)
 		vector.StrokeRect(screen, x, y, 320, 100, 2, borderColor, false)
-		if i == 0 {
-			DrawPlayer1Avatar(screen, x+10, y+10, 1.5)
-		} else {
-			DrawPlayer2Avatar(screen, x+10, y+10, 1.5)
-		}
+		DrawAvatar(screen, player.avatar, x+10, y+10, 1.5)
 		ebitenutil.DebugPrintAt(screen, player.name, int(x+90), int(y+30))
 		ebitenutil.DebugPrintAt(screen, player.name, int(x+91), int(y+30))
 		if g.currentPlayer == i {

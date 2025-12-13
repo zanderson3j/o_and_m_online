@@ -396,7 +396,7 @@ func (s *Server) handleChat(player *Player, msg Message) {
 
 // Avatar names matching client side
 var avatarNames = []string{
-	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Henry",
+	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Hen-ry",
 }
 
 func (s *Server) handleSetAvatar(player *Player, msg Message) {

@@ -21,6 +21,12 @@ type ConnectFourMove struct {
 	Column int `json:"column"`
 }
 
+type ConnectFourPlayer struct {
+	id     int
+	name   string
+	avatar AvatarType
+}
+
 type ConnectFourGame struct {
 	board         [cf_rows][cf_cols]int // 0 = empty, 1 = player 1, 2 = player 2
 	currentPlayer int
@@ -30,6 +36,7 @@ type ConnectFourGame struct {
 	hoveredCol    int
 	networkClient *NetworkClient
 	myPlayerNum   int // 1 or 2 (determined by join order)
+	players       []*ConnectFourPlayer
 }
 
 func NewConnectFourGame() *ConnectFourGame {
@@ -37,6 +44,10 @@ func NewConnectFourGame() *ConnectFourGame {
 }
 
 func NewConnectFourGameWithNetwork(nc *NetworkClient, playerNum int) *ConnectFourGame {
+	return NewConnectFourGameWithPlayers(nc, playerNum, nil)
+}
+
+func NewConnectFourGameWithPlayers(nc *NetworkClient, playerNum int, playerData []map[string]interface{}) *ConnectFourGame {
 	boardWidth := float32(cf_cols * cf_cellSize)
 	boardHeight := float32(cf_rows * cf_cellSize)
 
@@ -52,7 +63,29 @@ func NewConnectFourGameWithNetwork(nc *NetworkClient, playerNum int) *ConnectFou
 		boardOffsetY:  boardCenterY,
 		hoveredCol:    -1,
 		networkClient: nc,
-		myPlayerNum:   playerNum,
+		myPlayerNum:   playerNum + 1, // Connect Four uses 1/2
+		players:       make([]*ConnectFourPlayer, 2),
+	}
+
+	// Initialize players with server data
+	for i := 0; i < 2; i++ {
+		name := fmt.Sprintf("Player %d", i+1)
+		avatar := i % int(AvatarNumTypes)
+
+		if playerData != nil && i < len(playerData) {
+			if n, ok := playerData[i]["name"].(string); ok {
+				name = n
+			}
+			if a, ok := playerData[i]["avatar"].(float64); ok {
+				avatar = int(a)
+			}
+		}
+
+		g.players[i] = &ConnectFourPlayer{
+			id:     i + 1,
+			name:   name,
+			avatar: AvatarType(avatar),
+		}
 	}
 
 	// Register network handler for opponent moves
@@ -297,13 +330,10 @@ func (g *ConnectFourGame) drawPlayerInfo(screen *ebiten.Image) {
 		vector.DrawFilledRect(screen, x, y, 320, 100, panelColor, false)
 		vector.StrokeRect(screen, x, y, 320, 100, 2, borderColor, false)
 
-		if i == 0 {
-			DrawPlayer1Avatar(screen, x+10, y+10, 1.5)
-		} else {
-			DrawPlayer2Avatar(screen, x+10, y+10, 1.5)
-		}
+		player := g.players[i]
+		DrawAvatar(screen, player.avatar, x+10, y+10, 1.5)
 
-		playerName := fmt.Sprintf("Player %d", i+1)
+		playerName := player.name
 		ebitenutil.DebugPrintAt(screen, playerName, int(x+90), int(y+30))
 		ebitenutil.DebugPrintAt(screen, playerName, int(x+91), int(y+30))
 
@@ -328,7 +358,7 @@ func (g *ConnectFourGame) drawWinner(screen *ebiten.Image) {
 	vector.DrawFilledRect(screen, bannerX-20, bannerY+40, 10, 10, starColor, false)
 	vector.DrawFilledRect(screen, bannerX+bannerWidth+8, bannerY+40, 10, 10, starColor, false)
 
-	winnerText := fmt.Sprintf("WINNER: Player %d", g.winner)
+	winnerText := fmt.Sprintf("WINNER: %s", g.players[g.winner-1].name)
 	winnerTextX := int(bannerX + (bannerWidth-float32(len(winnerText)*6))/2)
 	ebitenutil.DebugPrintAt(screen, winnerText, winnerTextX, int(bannerY+25))
 	ebitenutil.DebugPrintAt(screen, winnerText, winnerTextX+1, int(bannerY+25))
