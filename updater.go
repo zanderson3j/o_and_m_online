@@ -5,7 +5,7 @@ import (
 	"runtime"
 )
 
-const currentVersion = "1.0.4"
+const currentVersion = "1.0.5"
 
 // checkForUpdates checks for new versions and logs the current version
 func checkForUpdates() {
