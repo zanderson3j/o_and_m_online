@@ -48,13 +48,13 @@ type RoomInfo struct {
 }
 
 type NetworkClient struct {
-	conn         *websocket.Conn
-	playerID     string
-	currentRoom  string
-	rooms        []RoomInfo
-	mu           sync.RWMutex
-	msgHandlers  map[MessageType]func(Message)
-	connected    bool
+	conn        *websocket.Conn
+	playerID    string
+	currentRoom string
+	rooms       []RoomInfo
+	mu          sync.RWMutex
+	msgHandlers map[MessageType]func(Message)
+	connected   bool
 }
 
 func NewNetworkClient(serverURL string) (*NetworkClient, error) {
@@ -135,11 +135,10 @@ func (nc *NetworkClient) handleMessage(msg Message) {
 			nc.mu.Unlock()
 			log.Printf("Updated room list: %d rooms", len(data.Rooms))
 			for _, room := range data.Rooms {
-				log.Printf("  Room %s: %s (%d/%d players, started=%v)", 
+				log.Printf("  Room %s: %s (%d/%d players, started=%v)",
 					room.ID, room.Name, room.Players, room.MaxPlayers, room.Started)
 			}
 		}
-
 
 	case MsgError:
 		var errData struct {

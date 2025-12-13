@@ -10,7 +10,7 @@ import (
 const (
 	screenWidth  = 1024
 	screenHeight = 768
-	serverURL    = "ws://localhost:8080/ws"
+	serverURL    = "wss://o-and-m-online.onrender.com/ws"
 )
 
 type GameRoom struct {

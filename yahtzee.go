@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
-	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -122,7 +121,7 @@ func NewYahtzeeGameWithPlayers(nc *NetworkClient, playerNum int, playerData []ma
 	for i := 0; i < numPlayers; i++ {
 		name := fmt.Sprintf("Player %d", i+1)
 		avatar := i % int(AvatarNumTypes)
-		
+
 		if i < len(playerData) {
 			if n, ok := playerData[i]["name"].(string); ok {
 				name = n
@@ -131,7 +130,7 @@ func NewYahtzeeGameWithPlayers(nc *NetworkClient, playerNum int, playerData []ma
 				avatar = int(a)
 			}
 		}
-		
+
 		g.players[i] = &YahtzeePlayer{
 			name:   name,
 			avatar: AvatarType(avatar),
@@ -151,7 +150,7 @@ func NewYahtzeeGameWithPlayers(nc *NetworkClient, playerNum int, playerData []ma
 
 	// Setup UI elements
 	g.setupUI()
-	
+
 	return g
 }
 
@@ -640,12 +639,12 @@ func (g *YahtzeeGame) drawScoreSummary(screen *ebiten.Image) {
 	// Available space: from y=340 (below roll button) to y=700 (leaving space at bottom)
 	availableHeight := 360.0
 	// Scorecard starts at x=720, so we have from x=0 to x=700 available (with margins)
-	availableWidth := 680.0  // Leave 20px margin before scorecard
+	availableWidth := 680.0 // Leave 20px margin before scorecard
 	spacing := 5.0
-	
+
 	var cols, rows int
 	var panelWidth, panelHeight float64
-	
+
 	// Determine optimal grid layout
 	switch {
 	case g.numPlayers <= 2:
@@ -667,34 +666,34 @@ func (g *YahtzeeGame) drawScoreSummary(screen *ebiten.Image) {
 		cols, rows = 5, 4
 		panelHeight = 60.0
 	}
-	
+
 	// Adjust rows based on actual players
 	actualRows := (g.numPlayers + cols - 1) / cols
 	if actualRows < rows {
 		rows = actualRows
 	}
-	
+
 	// Calculate panel width based on available space and columns
 	panelWidth = (availableWidth - float64(cols-1)*spacing) / float64(cols)
 	if panelWidth > 180 {
-		panelWidth = 180  // Cap max width
+		panelWidth = 180 // Cap max width
 	}
-	
+
 	// Calculate actual height based on available space
 	maxPanelHeight := (availableHeight - float64(rows-1)*spacing) / float64(rows)
 	if panelHeight > maxPanelHeight {
 		panelHeight = maxPanelHeight
 	}
-	
+
 	// Center the grid within available space (left side of screen)
 	totalWidth := float64(cols)*panelWidth + float64(cols-1)*spacing
 	// Center within the left 700 pixels (before scorecard)
 	startX := (700.0 - totalWidth) / 2
 	if startX < 10 {
-		startX = 10  // Minimum margin
+		startX = 10 // Minimum margin
 	}
-	startY := 340.0  // Below the roll button
-	
+	startY := 340.0 // Below the roll button
+
 	// Draw player panels
 	for i, player := range g.players {
 		col := i % cols
@@ -708,34 +707,34 @@ func (g *YahtzeeGame) drawScoreSummary(screen *ebiten.Image) {
 func (g *YahtzeeGame) drawPlayerPanel(screen *ebiten.Image, player *YahtzeePlayer, index int, x, y, width, height float64) {
 	panelColor := color.RGBA{30, 50, 80, 255}
 	borderColor := color.RGBA{100, 150, 220, 255}
-	
+
 	// Highlight current player
 	if index == g.currentPlayer {
 		borderColor = color.RGBA{255, 220, 100, 255}
 		panelColor = color.RGBA{50, 70, 100, 255}
 	}
-	
+
 	vector.DrawFilledRect(screen, float32(x), float32(y), float32(width), float32(height), panelColor, false)
 	vector.StrokeRect(screen, float32(x), float32(y), float32(width), float32(height), 2, borderColor, false)
-	
+
 	// Dynamic sizing based on panel height
 	// Avatar should take up about 60% of height, leaving room for text
 	avatarSize := height * 0.6
 	if avatarSize > 50 {
-		avatarSize = 50  // Cap max size
+		avatarSize = 50 // Cap max size
 	}
-	avatarScale := float32(avatarSize / 50.0)  // Base avatar is 50x50
-	
+	avatarScale := float32(avatarSize / 50.0) // Base avatar is 50x50
+
 	// Position avatar with consistent padding
 	avatarX := float32(x + 5)
 	avatarY := float32(y + (height-avatarSize)/2)
 	DrawAvatar(screen, player.avatar, avatarX, avatarY, avatarScale)
-	
+
 	// Text positioning - after avatar with padding
 	textX := int(x + avatarSize + 10)
 	nameY := int(y + height*0.3)
 	scoreY := int(y + height*0.6)
-	
+
 	// Use smaller font for very compact layouts
 	if height < 70 {
 		// For very small panels, put text on single line
@@ -750,7 +749,7 @@ func (g *YahtzeeGame) drawPlayerPanel(screen *ebiten.Image, player *YahtzeePlaye
 		if index == g.currentPlayer {
 			ebitenutil.DebugPrintAt(screen, player.name, textX+1, nameY)
 		}
-		
+
 		scoreText := fmt.Sprintf("Score: %d", player.totalScore)
 		ebitenutil.DebugPrintAt(screen, scoreText, textX, scoreY)
 		if index == g.currentPlayer {
