@@ -12,12 +12,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-13  # Intel runner
-            arch: amd64
-            name: intel
-          - os: macos-14  # Apple Silicon runner
+          - os: macos-latest  # Latest macOS (Apple Silicon)
             arch: arm64
             name: apple_silicon
+          - os: macos-13  # Intel runner (will update to macos-15 when available)
+            arch: amd64
+            name: intel
     
     steps:
     - uses: actions/checkout@v3
@@ -27,11 +27,7 @@ jobs:
       with:
         go-version: '1.21'
     
-    - name: Download dependencies
-      run: go mod download
-    
     - name: Build for ${{ matrix.name }}
-      working-directory: .
       run: |
         APP_NAME="O&M Game Room"
         VERSION=${GITHUB_REF#refs/tags/v}
@@ -66,7 +62,7 @@ jobs:
         echo "DMG_PATH=build/darwin/$DMG_NAME" >> $GITHUB_ENV
     
     - name: Upload DMG
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-${{ matrix.name }}
         path: ${{ env.DMG_PATH }}
@@ -82,7 +78,7 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: ./artifacts
     
