@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	githubRepo = "YOUR_GITHUB_USERNAME/o_and_m_online" // TODO: Update this with your GitHub username
+	githubRepo = "zanderson3j/o_and_m_online"
 	updateCheckInterval = 24 * time.Hour
 )
 
