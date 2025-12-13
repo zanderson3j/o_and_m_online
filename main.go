@@ -149,6 +149,9 @@ func (gr *GameRoom) TryGoOnline() {
 func main() {
 	log.Println("Starting Olive & Millie's Game Room")
 	
+	// Check for updates
+	checkForUpdates()
+	
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Olive & Millie's Game Room - ONLINE")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
