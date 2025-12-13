@@ -21,3 +21,8 @@ game.wasm
 *.exe
 *.test
 *.out
+
+# Build artifacts
+build/
+*.dmg
+*.app/
