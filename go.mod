@@ -1,6 +1,6 @@
 module olive_and_millies_game_room
 
-go 1.25.1
+go 1.22.0
 
 require (
 	github.com/gorilla/websocket v1.5.1
