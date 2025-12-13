@@ -59,6 +59,7 @@ type NetworkClient struct {
 }
 
 func NewNetworkClient(serverURL string) (*NetworkClient, error) {
+	log.Println("NewNetworkClient called with URL:", serverURL)
 	return NewNetworkClientWithRetry(serverURL, 1, 0)
 }
 

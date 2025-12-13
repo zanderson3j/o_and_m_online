@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -144,7 +145,7 @@ func (gr *GameRoom) TryGoOnline() {
 			log.Println("Game ended - player left")
 			gr.ReturnHome()
 		})
-	}()
+	}() // End of goroutine
 }
 
 
@@ -165,69 +166,27 @@ func main() {
 		homeScreen: NewHomeScreen(),
 	}
 
-	// Try to connect to server (single attempt, no retries)
-	log.Println("Attempting quick connection to server...")
-	networkClient, err := NewNetworkClient(serverURL)
-	if err != nil {
-		log.Printf("Server not available: %v", err)
-		log.Println("Starting in offline mode. Use 'Go Online' button to connect.")
-		gameRoom.networkClient = nil
-		gameRoom.isOnlineMode = false
-	} else {
-		log.Println("Connected to server successfully!")
-		gameRoom.networkClient = networkClient
-		gameRoom.lobbyScreen = NewLobbyScreen(networkClient)
-		gameRoom.isOnlineMode = true
-		// Send initial avatar selection
-		networkClient.SetAvatar(0) // Default Human avatar
+	// Start in offline mode for now
+	log.Println("Starting in offline mode. Click 'Go Online' to connect.")
+	gameRoom.networkClient = nil
+	gameRoom.isOnlineMode = false
+	
+	// Auto-connect for desktop only
+	if !IsWASM {
+		go func() {
+			time.Sleep(100 * time.Millisecond) // Small delay to ensure UI is ready
+			log.Println("Desktop: Auto-connecting to server...")
+			gameRoom.TryGoOnline()
+		}()
 	}
 
-	if networkClient != nil {
-		// Register handler for when game starts
-		networkClient.RegisterHandler(MsgStartGame, func(msg Message) {
-			log.Printf("Starting game: %s\n", msg.GameType)
-
-			// Get player number and game info from server
-			var data struct {
-				PlayerNumber int                      `json:"player_number"`
-				TotalPlayers int                      `json:"total_players"`
-				Players      []map[string]interface{} `json:"players"`
-			}
-			playerNum := 0
-			totalPlayers := 2
-			if err := json.Unmarshal(msg.Data, &data); err == nil {
-				playerNum = data.PlayerNumber
-				totalPlayers = data.TotalPlayers
-			}
-			log.Printf("I am player number: %d (total players: %d)\n", playerNum, totalPlayers)
-
-			// Switch to the appropriate game with network support
-			switch msg.GameType {
-			case "yahtzee":
-				gameRoom.SwitchToGame(NewYahtzeeGameWithPlayers(networkClient, playerNum, data.Players))
-			case "santorini":
-				gameRoom.SwitchToGame(NewSantoriniGameWithPlayers(networkClient, playerNum, data.Players))
-			case "connect_four":
-				gameRoom.SwitchToGame(NewConnectFourGameWithPlayers(networkClient, playerNum, data.Players))
-			case "memory":
-				gameRoom.SwitchToGame(NewMemoryGameWithPlayers(networkClient, playerNum, data.Players))
-			}
-			gameRoom.isOnlineMode = false
-		})
-
-		// Handle game ended (player left during game)
-		networkClient.RegisterHandler("game_ended", func(msg Message) {
-			log.Println("Game ended - player left")
-			gameRoom.ReturnHome()
-		})
-	}
 
 	if err := ebiten.RunGame(gameRoom); err != nil {
 		log.Fatal(err)
 	}
 
 	// Cleanup
-	if networkClient != nil {
-		networkClient.Close()
+	if gameRoom.networkClient != nil {
+		gameRoom.networkClient.Close()
 	}
 }
