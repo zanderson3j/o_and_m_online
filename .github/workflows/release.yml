@@ -8,13 +8,15 @@ on:
 jobs:
   build-macos:
     name: Build macOS
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - arch: amd64
+          - os: macos-13  # Intel runner
+            arch: amd64
             name: intel
-          - arch: arm64
+          - os: macos-14  # Apple Silicon runner
+            arch: arm64
             name: apple_silicon
     
     steps:
@@ -43,10 +45,14 @@ jobs:
         cp resources/app.icns "$APP_BUNDLE/Contents/Resources/"
         chmod +x "$APP_BUNDLE/Contents/MacOS/game_client"
         
+        # Ad-hoc sign the app
+        codesign --force --deep --sign - "$APP_BUNDLE"
+        
         # Create DMG
         DMG_DIR="build/darwin/dmg"
         mkdir -p "$DMG_DIR"
         cp -R "$APP_BUNDLE" "$DMG_DIR/"
+        cp install_helper.command "$DMG_DIR/"
         ln -s /Applications "$DMG_DIR/Applications"
         
         DMG_NAME="OandM_Game_Room_${VERSION}_${{ matrix.name }}.dmg"
