@@ -26,6 +26,10 @@ cp resources/app.icns "$APP_BUNDLE/Contents/Resources/"
 # Set executable permissions
 chmod +x "$APP_BUNDLE/Contents/MacOS/game_client"
 
+# Ad-hoc sign the app (no Apple Developer account needed)
+echo "Signing app..."
+codesign --force --deep --sign - "$APP_BUNDLE"
+
 # Create DMG for distribution
 echo "Creating DMG..."
 DMG_NAME="OandM_Game_Room_${VERSION}_$(uname -m).dmg"
@@ -39,11 +43,15 @@ mkdir -p "$DMG_DIR"
 # Copy app to DMG directory
 cp -R "$APP_BUNDLE" "$DMG_DIR/"
 
+# Copy install helper
+cp install_helper.command "$DMG_DIR/"
+
 # Create Applications symlink
 ln -s /Applications "$DMG_DIR/Applications"
 
-# Create DMG
+# Create DMG with internet-enable to reduce quarantine issues
 hdiutil create -volname "$APP_NAME" -srcfolder "$DMG_DIR" -ov -format UDZO "$DMG_PATH"
+hdiutil internet-enable -yes "$DMG_PATH" || true
 
 # Clean up
 rm -rf "$DMG_DIR"

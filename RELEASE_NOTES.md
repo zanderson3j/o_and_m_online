@@ -21,7 +21,18 @@ First public release of O&M Game Room!
 
 3. Drag "O&M Game Room" to your Applications folder
 
-4. First time opening:
+4. **IMPORTANT - First time opening:**
+   
+   **If you see "damaged and can't be opened":**
+   - Open Terminal (find it in Applications > Utilities)
+   - Copy and paste this command:
+     ```
+     xattr -cr "/Applications/O&M Game Room.app"
+     ```
+   - Press Enter
+   - Now open the app normally
+   
+   **Alternative method:**
    - Right-click on "O&M Game Room" in Applications
    - Select "Open" from the menu
    - Click "Open" in the security dialog
