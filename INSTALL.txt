@@ -1,0 +1,67 @@
+═══════════════════════════════════════════════════════════════════
+    OLIVE & MILLIE'S GAME ROOM - INSTALLATION INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: INSTALL THE APP
+─────────────────────────────────────────────────────────────────
+
+1. Drag "O&M Game Room" to the Applications folder shortcut
+2. Wait for the copy to complete
+3. You can now eject this disk image
+
+
+STEP 2: FIRST TIME OPENING (IMPORTANT!)
+─────────────────────────────────────────────────────────────────
+
+Because this app is not code-signed, macOS will block it the first
+time you try to open it. Here's how to allow it:
+
+METHOD 1 - RIGHT-CLICK OPEN (Easiest)
+───────────────────────────────────────
+1. Open your Applications folder
+2. Find "O&M Game Room"
+3. RIGHT-CLICK (or Control-Click) on the app
+4. Select "Open" from the menu
+5. Click "Open" in the security dialog that appears
+6. The app will now launch!
+
+✓ After doing this once, you can open the app normally
+
+
+METHOD 2 - SECURITY & PRIVACY (If Method 1 doesn't work)
+──────────────────────────────────────────────────────────
+1. Try to open the app normally (it will be blocked)
+2. Open System Settings (or System Preferences)
+3. Go to "Privacy & Security"
+4. Scroll down to find the security message about "O&M Game Room"
+5. Click "Open Anyway"
+6. Click "Open" to confirm
+
+
+WHY THIS HAPPENS
+─────────────────────────────────────────────────────────────────
+
+macOS Gatekeeper blocks apps that aren't signed with an Apple
+Developer certificate ($99/year). This is a free, open-source game,
+so it's distributed unsigned. The app is safe - you just need to
+tell macOS you trust it.
+
+
+SYSTEM REQUIREMENTS
+─────────────────────────────────────────────────────────────────
+
+• macOS 10.13 (High Sierra) or later
+• Apple Silicon (M1/M2/M3) or Intel processor
+• Internet connection for online multiplayer
+
+
+NEED HELP?
+─────────────────────────────────────────────────────────────────
+
+Visit: https://github.com/zanderson3j/o_and_m_online
+Report issues: https://github.com/zanderson3j/o_and_m_online/issues
+
+
+═══════════════════════════════════════════════════════════════════
+                    Enjoy the games! 🎮
+═══════════════════════════════════════════════════════════════════

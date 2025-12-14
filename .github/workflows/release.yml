@@ -54,6 +54,7 @@ jobs:
         DMG_DIR="build/darwin/dmg"
         mkdir -p "$DMG_DIR"
         cp -R "$APP_BUNDLE" "$DMG_DIR/"
+        cp INSTALL.txt "$DMG_DIR/"
         ln -s /Applications "$DMG_DIR/Applications"
         
         DMG_NAME="OandM_Game_Room_${VERSION}_${{ matrix.name }}.dmg"
