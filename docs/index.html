@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olive & Millie's Game Room</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .logo {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .download-section {
+            margin-top: 40px;
+        }
+
+        .download-section h2 {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .download-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 18px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+        }
+
+        .version-info {
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+
+        .features {
+            margin-top: 30px;
+            text-align: left;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        .features h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .features ul {
+            list-style: none;
+            color: #666;
+        }
+
+        .features li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 40px 25px;
+            }
+
+            .logo {
+                width: 150px;
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="oam_icon.png" alt="O&M Game Room Logo" class="logo">
+
+        <h1>Olive & Millie's<br>Game Room</h1>
+        <p class="subtitle">Multiplayer games with a forest adventure theme</p>
+
+        <div class="features">
+            <h3>Features</h3>
+            <ul>
+                <li>4 multiplayer games: Yahtzee, Santorini, Connect Four, and Memory Match</li>
+                <li>Online multiplayer support</li>
+                <li>Beautiful forest theme with Studio Ghibli-inspired visuals</li>
+                <li>Support for up to 20 players (game dependent)</li>
+                <li>Custom avatars for each player</li>
+            </ul>
+        </div>
+
+        <div class="download-section">
+            <h2>Download for macOS</h2>
+            <div class="download-buttons">
+                <a href="https://github.com/zanderson3j/o_and_m_online/releases/latest" class="btn">
+                    Download Latest Release
+                </a>
+                <a href="https://github.com/zanderson3j/o_and_m_online/releases" class="btn btn-secondary">
+                    View All Releases
+                </a>
+            </div>
+            <p class="version-info">
+                <strong>System Requirements:</strong> macOS 10.13 or later<br>
+                Available for Intel and Apple Silicon Macs
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Fetch and display the latest version
+        fetch('https://api.github.com/repos/zanderson3j/o_and_m_online/releases/latest')
+            .then(response => response.json())
+            .then(data => {
+                const versionInfo = document.querySelector('.version-info');
+                versionInfo.innerHTML = `
+                    <strong>Latest Version:</strong> ${data.tag_name}<br>
+                    <strong>System Requirements:</strong> macOS 10.13 or later<br>
+                    Available for Intel and Apple Silicon Macs
+                `;
+            })
+            .catch(error => console.log('Could not fetch version info'));
+    </script>
+</body>
+</html>
