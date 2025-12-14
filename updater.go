@@ -5,7 +5,7 @@ import (
 	"runtime"
 )
 
-const currentVersion = "1.0.11"
+const currentVersion = "1.0.12"
 
 // checkForUpdates checks for new versions and logs the current version
 func checkForUpdates(gr *GameRoom) {
