@@ -43,7 +43,7 @@ func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 	buttonWidth := 280.0
 	buttonHeight := 90.0
 	startX := float64(screenWidth/2) - buttonWidth - 20
-	startY := 250.0
+	startY := 150.0  // Moved up from 250 to show more background
 	spacingX := buttonWidth + 40.0
 	spacingY := buttonHeight + 20.0
 
