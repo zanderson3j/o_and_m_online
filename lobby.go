@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -19,6 +20,7 @@ type LobbyScreen struct {
 	backButton          *Button
 	startButton         *Button
 	avatarButtons       []*Button // Avatar selection buttons
+	randomAvatarButton  *Button   // Random avatar selection button
 	selectedGame        string
 	selectedAvatar      AvatarType
 	showingRooms        bool
@@ -98,8 +100,9 @@ func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 	avatarSize := 80.0
 	avatarSpacing := 100.0
 	avatarsPerRow := 8  // 8 avatars per row
-	numRows := (int(AvatarNumTypes) + avatarsPerRow - 1) / avatarsPerRow
-	
+	totalButtons := int(AvatarNumTypes) + 1  // +1 for random button
+	numRows := (totalButtons + avatarsPerRow - 1) / avatarsPerRow
+
 	// Center the grid
 	totalWidth := float64(avatarsPerRow) * avatarSpacing - (avatarSpacing - avatarSize)
 	avatarStartX := (float64(screenWidth) - totalWidth) / 2
@@ -108,17 +111,18 @@ func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 	for i := 0; i < int(AvatarNumTypes); i++ {
 		row := i / avatarsPerRow
 		col := i % avatarsPerRow
-		
-		// Center last row if it has fewer avatars
+
+		// Center last row if it has fewer buttons (including random)
 		xOffset := 0.0
 		if row == numRows-1 {
-			avatarsInLastRow := int(AvatarNumTypes) % avatarsPerRow
-			if avatarsInLastRow > 0 {
-				lastRowWidth := float64(avatarsInLastRow) * avatarSpacing - (avatarSpacing - avatarSize)
-				xOffset = (totalWidth - lastRowWidth) / 2
+			buttonsInLastRow := totalButtons % avatarsPerRow
+			if buttonsInLastRow == 0 {
+				buttonsInLastRow = avatarsPerRow
 			}
+			lastRowWidth := float64(buttonsInLastRow) * avatarSpacing - (avatarSpacing - avatarSize)
+			xOffset = (totalWidth - lastRowWidth) / 2
 		}
-		
+
 		ls.avatarButtons[i] = &Button{
 			x:       avatarStartX + float64(col)*avatarSpacing + xOffset,
 			y:       avatarStartY + float64(row)*120,  // 120 pixels between rows (avatar + name)
@@ -127,6 +131,31 @@ func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
 			text:    "", // No text, we'll draw avatars instead
 			enabled: true,
 		}
+	}
+
+	// Random avatar button - positioned as the next item in the grid
+	randomIndex := int(AvatarNumTypes)
+	randomRow := randomIndex / avatarsPerRow
+	randomCol := randomIndex % avatarsPerRow
+
+	// Apply same centering logic for last row
+	randomXOffset := 0.0
+	if randomRow == numRows-1 {
+		buttonsInLastRow := totalButtons % avatarsPerRow
+		if buttonsInLastRow == 0 {
+			buttonsInLastRow = avatarsPerRow
+		}
+		lastRowWidth := float64(buttonsInLastRow) * avatarSpacing - (avatarSpacing - avatarSize)
+		randomXOffset = (totalWidth - lastRowWidth) / 2
+	}
+
+	ls.randomAvatarButton = &Button{
+		x:       avatarStartX + float64(randomCol)*avatarSpacing + randomXOffset,
+		y:       avatarStartY + float64(randomRow)*120,
+		width:   avatarSize,
+		height:  avatarSize,
+		text:    "", // No text, we'll draw a special icon
+		enabled: true,
 	}
 
 	// Register network handlers
@@ -217,6 +246,7 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 		for _, btn := range ls.avatarButtons {
 			btn.hovered = btn.Contains(mx, my)
 		}
+		ls.randomAvatarButton.hovered = ls.randomAvatarButton.Contains(mx, my)
 		ls.backButton.hovered = ls.backButton.Contains(mx, my)
 
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
@@ -226,6 +256,14 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 					ls.networkClient.SetAvatar(i)
 					ls.showAvatarSelect = false
 				}
+			}
+			// Handle random avatar button
+			if ls.randomAvatarButton.hovered {
+				// Pick a random avatar (from 0 to AvatarNumTypes-1)
+				randomAvatar := rand.Intn(int(AvatarNumTypes))
+				ls.selectedAvatar = AvatarType(randomAvatar)
+				ls.networkClient.SetAvatar(randomAvatar)
+				ls.showAvatarSelect = false
 			}
 			if ls.backButton.hovered {
 				ls.showAvatarSelect = false
@@ -620,6 +658,55 @@ func (ls *LobbyScreen) drawAvatarSelection(screen *ebiten.Image) {
 		nameY := int(y + h + 5)
 		ebitenutil.DebugPrintAt(screen, name, nameX, nameY)
 	}
+
+	// Draw random avatar button
+	randomBtn := ls.randomAvatarButton
+	randomBgColor := color.RGBA{50, 40, 60, 255}
+	randomBorderColor := color.RGBA{150, 100, 200, 255}
+	if randomBtn.hovered {
+		randomBgColor = color.RGBA{70, 50, 90, 255}
+		randomBorderColor = color.RGBA{200, 150, 255, 255}
+	}
+
+	randomX := float32(randomBtn.x)
+	randomY := float32(randomBtn.y)
+	randomW := float32(randomBtn.width)
+	randomH := float32(randomBtn.height)
+
+	vector.DrawFilledRect(screen, randomX, randomY, randomW, randomH, randomBgColor, false)
+	vector.StrokeRect(screen, randomX, randomY, randomW, randomH, 2, randomBorderColor, false)
+
+	// Draw simple human silhouette (similar to avatar style but simpler)
+	scale := float32(1)
+	avatarX := randomX + 15
+	avatarY := randomY + 15
+
+	humanColor := color.RGBA{200, 200, 200, 255}
+
+	// Head (circle)
+	vector.DrawFilledCircle(screen, avatarX+25*scale, avatarY+12*scale, 8*scale, humanColor, false)
+
+	// Body
+	vector.DrawFilledRect(screen, avatarX+20*scale, avatarY+20*scale, 10*scale, 15*scale, humanColor, false)
+
+	// Arms
+	vector.DrawFilledRect(screen, avatarX+12*scale, avatarY+22*scale, 8*scale, 4*scale, humanColor, false)
+	vector.DrawFilledRect(screen, avatarX+30*scale, avatarY+22*scale, 8*scale, 4*scale, humanColor, false)
+
+	// Legs
+	vector.DrawFilledRect(screen, avatarX+20*scale, avatarY+35*scale, 4*scale, 10*scale, humanColor, false)
+	vector.DrawFilledRect(screen, avatarX+26*scale, avatarY+35*scale, 4*scale, 10*scale, humanColor, false)
+
+	// Double frame for random button
+	vector.StrokeRect(screen, randomX, randomY, randomW, randomH, 3, randomBorderColor, false)
+	vector.StrokeRect(screen, randomX+4, randomY+4, randomW-8, randomH-8, 2, randomBorderColor, false)
+
+	// Draw "Random" label below
+	randomLabel := "Random"
+	labelWidth := len(randomLabel) * 6
+	labelX := int(randomX + randomW/2 - float32(labelWidth)/2)
+	labelY := int(randomY + randomH + 5)
+	ebitenutil.DebugPrintAt(screen, randomLabel, labelX, labelY)
 
 	// Back button
 	ls.drawButton(screen, ls.backButton)

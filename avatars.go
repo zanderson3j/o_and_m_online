@@ -25,11 +25,19 @@ const (
 	AvatarGator
 	AvatarOcelot
 	AvatarHen
+	AvatarMouse
+	AvatarCaribou
+	AvatarPitbull
+	AvatarLabrador
+	AvatarGoldenDoodle
+	AvatarShepherd
+	AvatarWhiteCat
+	AvatarGreyCat
 	AvatarNumTypes
 )
 
 var avatarNames = []string{
-	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Hen-ry",
+	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Hen-ry", "Tomouse", "Karabou", "Valkyrie", "Eleanor", "Stella", "Huckleberry", "Winston", "Baxter",
 }
 
 func GetAvatarName(avatarType AvatarType) string {
@@ -71,6 +79,22 @@ func DrawAvatar(screen *ebiten.Image, avatarType AvatarType, x, y, scale float32
 		DrawOcelotAvatar(screen, x, y, scale)
 	case AvatarHen:
 		DrawHenAvatar(screen, x, y, scale)
+	case AvatarMouse:
+		DrawMouseAvatar(screen, x, y, scale)
+	case AvatarCaribou:
+		DrawCaribouAvatar(screen, x, y, scale)
+	case AvatarPitbull:
+		DrawPitbullAvatar(screen, x, y, scale)
+	case AvatarLabrador:
+		DrawLabradorAvatar(screen, x, y, scale)
+	case AvatarGoldenDoodle:
+		DrawGoldenDoodleAvatar(screen, x, y, scale)
+	case AvatarShepherd:
+		DrawShepherdAvatar(screen, x, y, scale)
+	case AvatarWhiteCat:
+		DrawWhiteCatAvatar(screen, x, y, scale)
+	case AvatarGreyCat:
+		DrawGreyCatAvatar(screen, x, y, scale)
 	}
 }
 
@@ -821,4 +845,515 @@ func DrawHenAvatar(screen *ebiten.Image, x, y, scale float32) {
 
 	// Frame
 	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{220, 180, 140, 255}, false)
+}
+
+// Draw Mouse avatar
+func DrawMouseAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Body (small and round)
+	bodyColor := color.RGBA{160, 140, 120, 255}
+	vector.DrawFilledRect(screen, x+15*p, y+40*p, 20*p, 10*p, bodyColor, false)
+
+	// Neck
+	vector.DrawFilledRect(screen, x+20*p, y+36*p, 10*p, 6*p, bodyColor, false)
+
+	// Head (small and cute)
+	headColor := color.RGBA{170, 150, 130, 255}
+	vector.DrawFilledRect(screen, x+16*p, y+22*p, 18*p, 14*p, headColor, false)
+	vector.DrawFilledRect(screen, x+18*p, y+20*p, 14*p, 4*p, headColor, false)
+
+	// Large round ears (distinctive mouse feature)
+	earColor := color.RGBA{150, 130, 110, 255}
+	vector.DrawFilledCircle(screen, x+16*p, y+18*p, 8*p, earColor, false)
+	vector.DrawFilledCircle(screen, x+34*p, y+18*p, 8*p, earColor, false)
+
+	// Inner ears
+	innerEarColor := color.RGBA{255, 200, 200, 255}
+	vector.DrawFilledCircle(screen, x+16*p, y+18*p, 5*p, innerEarColor, false)
+	vector.DrawFilledCircle(screen, x+34*p, y+18*p, 5*p, innerEarColor, false)
+
+	// Eyes (big and round)
+	eyeWhite := color.RGBA{255, 255, 255, 255}
+	vector.DrawFilledCircle(screen, x+20*p, y+26*p, 4*p, eyeWhite, false)
+	vector.DrawFilledCircle(screen, x+30*p, y+26*p, 4*p, eyeWhite, false)
+
+	eyeColor := color.RGBA{40, 40, 40, 255}
+	vector.DrawFilledCircle(screen, x+20*p, y+26*p, 3*p, eyeColor, false)
+	vector.DrawFilledCircle(screen, x+30*p, y+26*p, 3*p, eyeColor, false)
+
+	// Light reflection
+	vector.DrawFilledCircle(screen, x+21*p, y+25*p, 1.5*p, color.RGBA{255, 255, 255, 255}, false)
+	vector.DrawFilledCircle(screen, x+31*p, y+25*p, 1.5*p, color.RGBA{255, 255, 255, 255}, false)
+
+	// Nose (small pink)
+	noseColor := color.RGBA{255, 150, 180, 255}
+	vector.DrawFilledCircle(screen, x+25*p, y+32*p, 2*p, noseColor, false)
+
+	// Whiskers (long and thin)
+	whiskerColor := color.RGBA{80, 70, 60, 255}
+	vector.DrawFilledRect(screen, x+8*p, y+30*p, 10*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+8*p, y+32*p, 10*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+32*p, y+30*p, 10*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+32*p, y+32*p, 10*p, 1*p, whiskerColor, false)
+
+	// Long thin tail
+	tailColor := color.RGBA{140, 120, 100, 255}
+	vector.DrawFilledRect(screen, x+33*p, y+42*p, 14*p, 2*p, tailColor, false)
+	vector.DrawFilledRect(screen, x+44*p, y+40*p, 2*p, 6*p, tailColor, false)
+
+	// Frame
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{160, 140, 120, 255}, false)
+}
+
+// Draw Caribou avatar
+func DrawCaribouAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Body
+	bodyColor := color.RGBA{139, 115, 85, 255}
+	vector.DrawFilledRect(screen, x+8*p, y+38*p, 34*p, 12*p, bodyColor, false)
+
+	// Neck
+	neckColor := color.RGBA{150, 125, 95, 255}
+	vector.DrawFilledRect(screen, x+18*p, y+28*p, 14*p, 12*p, neckColor, false)
+
+	// Head
+	headColor := color.RGBA{160, 135, 105, 255}
+	vector.DrawFilledRect(screen, x+14*p, y+18*p, 22*p, 12*p, headColor, false)
+	vector.DrawFilledRect(screen, x+16*p, y+16*p, 18*p, 4*p, headColor, false)
+
+	// Snout
+	snoutColor := color.RGBA{180, 155, 125, 255}
+	vector.DrawFilledRect(screen, x+18*p, y+24*p, 14*p, 8*p, snoutColor, false)
+
+	// Large branching antlers (distinctive caribou feature)
+	antlerColor := color.RGBA{220, 200, 180, 255}
+
+	// Left antler main branch
+	vector.DrawFilledRect(screen, x+16*p, y+8*p, 3*p, 10*p, antlerColor, false)
+	// Left antler branches
+	vector.DrawFilledRect(screen, x+14*p, y+10*p, 6*p, 2*p, antlerColor, false)
+	vector.DrawFilledRect(screen, x+12*p, y+8*p, 4*p, 2*p, antlerColor, false)
+	vector.DrawFilledRect(screen, x+18*p, y+6*p, 3*p, 4*p, antlerColor, false)
+
+	// Right antler main branch
+	vector.DrawFilledRect(screen, x+31*p, y+8*p, 3*p, 10*p, antlerColor, false)
+	// Right antler branches
+	vector.DrawFilledRect(screen, x+30*p, y+10*p, 6*p, 2*p, antlerColor, false)
+	vector.DrawFilledRect(screen, x+34*p, y+8*p, 4*p, 2*p, antlerColor, false)
+	vector.DrawFilledRect(screen, x+29*p, y+6*p, 3*p, 4*p, antlerColor, false)
+
+	// Ears
+	earColor := color.RGBA{140, 120, 90, 255}
+	vector.DrawFilledRect(screen, x+14*p, y+14*p, 5*p, 6*p, earColor, false)
+	vector.DrawFilledRect(screen, x+31*p, y+14*p, 5*p, 6*p, earColor, false)
+
+	// Eyes
+	eyeWhite := color.RGBA{255, 255, 255, 255}
+	vector.DrawFilledCircle(screen, x+20*p, y+22*p, 3*p, eyeWhite, false)
+	vector.DrawFilledCircle(screen, x+30*p, y+22*p, 3*p, eyeWhite, false)
+
+	eyeColor := color.RGBA{60, 50, 40, 255}
+	vector.DrawFilledCircle(screen, x+20*p, y+22*p, 2*p, eyeColor, false)
+	vector.DrawFilledCircle(screen, x+30*p, y+22*p, 2*p, eyeColor, false)
+
+	// Nose
+	noseColor := color.RGBA{100, 80, 60, 255}
+	vector.DrawFilledRect(screen, x+23*p, y+28*p, 4*p, 3*p, noseColor, false)
+
+	// White chest fur
+	chestColor := color.RGBA{240, 230, 220, 255}
+	vector.DrawFilledRect(screen, x+20*p, y+32*p, 10*p, 8*p, chestColor, false)
+
+	// Legs/hooves
+	legColor := color.RGBA{120, 100, 70, 255}
+	vector.DrawFilledRect(screen, x+12*p, y+46*p, 4*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+20*p, y+46*p, 4*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+26*p, y+46*p, 4*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+34*p, y+46*p, 4*p, 4*p, legColor, false)
+
+	// Frame
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{139, 115, 85, 255}, false)
+}
+
+// Draw Pitbull avatar (Valkyrie)
+func DrawPitbullAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Muscular body (lighter for visibility)
+	bodyColor := color.RGBA{70, 70, 75, 255}
+	vector.DrawFilledRect(screen, x+8*p, y+42*p, 34*p, 8*p, bodyColor, false)
+
+	// Chest (muscular)
+	vector.DrawFilledRect(screen, x+12*p, y+38*p, 26*p, 6*p, bodyColor, false)
+
+	// Thick neck
+	vector.DrawFilledRect(screen, x+16*p, y+34*p, 18*p, 6*p, bodyColor, false)
+
+	// Head (broad and strong)
+	headColor := color.RGBA{80, 80, 85, 255}
+	vector.DrawFilledRect(screen, x+12*p, y+20*p, 26*p, 14*p, headColor, false)
+	vector.DrawFilledRect(screen, x+14*p, y+18*p, 22*p, 4*p, headColor, false)
+
+	// Strong jaw/muzzle
+	muzzleColor := color.RGBA{90, 90, 95, 255}
+	vector.DrawFilledRect(screen, x+16*p, y+28*p, 18*p, 8*p, muzzleColor, false)
+
+	// Short ears (cropped look)
+	earColor := color.RGBA{60, 60, 65, 255}
+	vector.DrawFilledRect(screen, x+14*p, y+16*p, 6*p, 6*p, earColor, false)
+	vector.DrawFilledRect(screen, x+30*p, y+16*p, 6*p, 6*p, earColor, false)
+
+	// Eyes (strong gaze)
+	eyeWhite := color.RGBA{255, 255, 255, 255}
+	vector.DrawFilledCircle(screen, x+19*p, y+24*p, 3*p, eyeWhite, false)
+	vector.DrawFilledCircle(screen, x+31*p, y+24*p, 3*p, eyeWhite, false)
+
+	eyeColor := color.RGBA{100, 80, 60, 255}
+	vector.DrawFilledCircle(screen, x+19*p, y+24*p, 2*p, eyeColor, false)
+	vector.DrawFilledCircle(screen, x+31*p, y+24*p, 2*p, eyeColor, false)
+
+	// Nose (black)
+	noseColor := color.RGBA{20, 20, 20, 255}
+	vector.DrawFilledRect(screen, x+23*p, y+32*p, 4*p, 3*p, noseColor, false)
+
+	// White chest patch
+	chestPatch := color.RGBA{200, 200, 200, 255}
+	vector.DrawFilledRect(screen, x+20*p, y+40*p, 10*p, 6*p, chestPatch, false)
+
+	// Frame (bright to stand out)
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{100, 150, 255, 255}, false)
+}
+
+// Draw Labrador avatar (Eleanor)
+func DrawLabradorAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Body (bigger and more substantial)
+	bodyColor := color.RGBA{65, 65, 70, 255}
+	vector.DrawFilledRect(screen, x+8*p, y+40*p, 34*p, 10*p, bodyColor, false)
+
+	// Chest (broad)
+	vector.DrawFilledRect(screen, x+12*p, y+36*p, 26*p, 6*p, bodyColor, false)
+
+	// Thick neck
+	vector.DrawFilledRect(screen, x+16*p, y+32*p, 18*p, 6*p, bodyColor, false)
+
+	// Head (larger, broad and friendly - typical lab)
+	headColor := color.RGBA{75, 75, 80, 255}
+	vector.DrawFilledRect(screen, x+10*p, y+18*p, 30*p, 16*p, headColor, false)
+	vector.DrawFilledRect(screen, x+12*p, y+16*p, 26*p, 4*p, headColor, false)
+	vector.DrawFilledRect(screen, x+12*p, y+32*p, 26*p, 3*p, headColor, false)
+
+	// Floppy ears (characteristic labrador ears - bigger)
+	earColor := color.RGBA{55, 55, 60, 255}
+	// Left ear
+	vector.DrawFilledRect(screen, x+6*p, y+20*p, 10*p, 16*p, earColor, false)
+	vector.DrawFilledRect(screen, x+4*p, y+24*p, 6*p, 12*p, earColor, false)
+	// Right ear
+	vector.DrawFilledRect(screen, x+34*p, y+20*p, 10*p, 16*p, earColor, false)
+	vector.DrawFilledRect(screen, x+40*p, y+24*p, 6*p, 12*p, earColor, false)
+
+	// Friendly eyes (wider set for broad head)
+	eyeWhite := color.RGBA{255, 255, 255, 255}
+	vector.DrawFilledCircle(screen, x+17*p, y+24*p, 4*p, eyeWhite, false)
+	vector.DrawFilledCircle(screen, x+33*p, y+24*p, 4*p, eyeWhite, false)
+
+	eyeColor := color.RGBA{80, 60, 40, 255}
+	vector.DrawFilledCircle(screen, x+17*p, y+24*p, 3*p, eyeColor, false)
+	vector.DrawFilledCircle(screen, x+33*p, y+24*p, 3*p, eyeColor, false)
+
+	pupilColor := color.RGBA{20, 20, 20, 255}
+	vector.DrawFilledCircle(screen, x+17*p, y+25*p, 1.5*p, pupilColor, false)
+	vector.DrawFilledCircle(screen, x+33*p, y+25*p, 1.5*p, pupilColor, false)
+
+	// Eye sparkle
+	vector.DrawFilledCircle(screen, x+18*p, y+23*p, 1*p, color.RGBA{255, 255, 255, 255}, false)
+	vector.DrawFilledCircle(screen, x+34*p, y+23*p, 1*p, color.RGBA{255, 255, 255, 255}, false)
+
+	// Broad muzzle
+	muzzleColor := color.RGBA{85, 85, 90, 255}
+	vector.DrawFilledRect(screen, x+16*p, y+28*p, 18*p, 8*p, muzzleColor, false)
+
+	// Nose (larger for lab)
+	noseColor := color.RGBA{20, 20, 20, 255}
+	vector.DrawFilledRect(screen, x+22*p, y+30*p, 6*p, 4*p, noseColor, false)
+
+	// Friendly mouth
+	mouthColor := color.RGBA{60, 60, 65, 255}
+	vector.DrawFilledRect(screen, x+25*p, y+33*p, 1*p, 2*p, mouthColor, false)
+	vector.DrawFilledRect(screen, x+21*p, y+34*p, 4*p, 1*p, mouthColor, false)
+	vector.DrawFilledRect(screen, x+26*p, y+34*p, 4*p, 1*p, mouthColor, false)
+
+	// Frame (bright to stand out)
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{180, 100, 255, 255}, false)
+}
+
+// Draw GoldenDoodle avatar (Stella)
+func DrawGoldenDoodleAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Fluffy body
+	bodyColor := color.RGBA{255, 215, 170, 255}
+	vector.DrawFilledRect(screen, x+8*p, y+40*p, 34*p, 10*p, bodyColor, false)
+	// Fluffy texture
+	vector.DrawFilledCircle(screen, x+12*p, y+42*p, 4*p, bodyColor, false)
+	vector.DrawFilledCircle(screen, x+22*p, y+44*p, 4*p, bodyColor, false)
+	vector.DrawFilledCircle(screen, x+32*p, y+42*p, 4*p, bodyColor, false)
+
+	// Fluffy neck
+	vector.DrawFilledRect(screen, x+16*p, y+34*p, 18*p, 8*p, bodyColor, false)
+	vector.DrawFilledCircle(screen, x+18*p, y+36*p, 3*p, bodyColor, false)
+	vector.DrawFilledCircle(screen, x+32*p, y+36*p, 3*p, bodyColor, false)
+
+	// Round fluffy head (teddy bear look)
+	headColor := color.RGBA{255, 220, 180, 255}
+	vector.DrawFilledRect(screen, x+10*p, y+18*p, 30*p, 18*p, headColor, false)
+	vector.DrawFilledRect(screen, x+12*p, y+16*p, 26*p, 4*p, headColor, false)
+	vector.DrawFilledRect(screen, x+12*p, y+34*p, 26*p, 4*p, headColor, false)
+	// Fluffy cheeks
+	vector.DrawFilledCircle(screen, x+12*p, y+28*p, 5*p, headColor, false)
+	vector.DrawFilledCircle(screen, x+38*p, y+28*p, 5*p, headColor, false)
+
+	// Floppy fluffy ears
+	earColor := color.RGBA{240, 200, 160, 255}
+	// Left ear
+	vector.DrawFilledCircle(screen, x+12*p, y+20*p, 6*p, earColor, false)
+	vector.DrawFilledCircle(screen, x+10*p, y+26*p, 5*p, earColor, false)
+	// Right ear
+	vector.DrawFilledCircle(screen, x+38*p, y+20*p, 6*p, earColor, false)
+	vector.DrawFilledCircle(screen, x+40*p, y+26*p, 5*p, earColor, false)
+
+	// Big cute eyes
+	eyeWhite := color.RGBA{255, 255, 255, 255}
+	vector.DrawFilledCircle(screen, x+19*p, y+24*p, 4*p, eyeWhite, false)
+	vector.DrawFilledCircle(screen, x+31*p, y+24*p, 4*p, eyeWhite, false)
+
+	eyeColor := color.RGBA{80, 60, 40, 255}
+	vector.DrawFilledCircle(screen, x+19*p, y+24*p, 3*p, eyeColor, false)
+	vector.DrawFilledCircle(screen, x+31*p, y+24*p, 3*p, eyeColor, false)
+
+	pupilColor := color.RGBA{20, 20, 20, 255}
+	vector.DrawFilledCircle(screen, x+19*p, y+25*p, 1.5*p, pupilColor, false)
+	vector.DrawFilledCircle(screen, x+31*p, y+25*p, 1.5*p, pupilColor, false)
+
+	// Big sparkles
+	vector.DrawFilledCircle(screen, x+20*p, y+23*p, 1.5*p, color.RGBA{255, 255, 255, 255}, false)
+	vector.DrawFilledCircle(screen, x+32*p, y+23*p, 1.5*p, color.RGBA{255, 255, 255, 255}, false)
+
+	// Nose (black)
+	noseColor := color.RGBA{40, 40, 40, 255}
+	vector.DrawFilledRect(screen, x+23*p, y+30*p, 4*p, 3*p, noseColor, false)
+
+	// Happy mouth
+	mouthColor := color.RGBA{100, 80, 60, 255}
+	vector.DrawFilledRect(screen, x+25*p, y+32*p, 1*p, 2*p, mouthColor, false)
+	vector.DrawFilledRect(screen, x+21*p, y+33*p, 4*p, 1*p, mouthColor, false)
+	vector.DrawFilledRect(screen, x+26*p, y+33*p, 4*p, 1*p, mouthColor, false)
+
+	// Fluffy tail
+	tailColor := color.RGBA{250, 210, 165, 255}
+	vector.DrawFilledCircle(screen, x+40*p, y+42*p, 5*p, tailColor, false)
+
+	// Frame
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{255, 215, 170, 255}, false)
+}
+
+// Draw Shepherd avatar (Huckleberry)
+func DrawShepherdAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Body (lighter for visibility)
+	bodyColor := color.RGBA{70, 70, 75, 255}
+	vector.DrawFilledRect(screen, x+10*p, y+42*p, 30*p, 8*p, bodyColor, false)
+
+	// Neck (thick and strong)
+	vector.DrawFilledRect(screen, x+16*p, y+36*p, 18*p, 8*p, bodyColor, false)
+
+	// Head (noble and strong)
+	headColor := color.RGBA{80, 80, 85, 255}
+	vector.DrawFilledRect(screen, x+12*p, y+22*p, 26*p, 14*p, headColor, false)
+	vector.DrawFilledRect(screen, x+14*p, y+20*p, 22*p, 4*p, headColor, false)
+
+	// Pointed ears (distinctive shepherd characteristic)
+	earColor := color.RGBA{60, 60, 65, 255}
+	// Left ear
+	for i := 0; i < 10; i++ {
+		w := float32(10 - i)
+		vector.DrawFilledRect(screen, x+12*p+float32(i)*p/2, y+10*p+float32(i)*p, w*p, 2*p, earColor, false)
+	}
+	// Right ear
+	for i := 0; i < 10; i++ {
+		w := float32(10 - i)
+		vector.DrawFilledRect(screen, x+33*p-float32(i)*p/2, y+10*p+float32(i)*p, w*p, 2*p, earColor, false)
+	}
+
+	// Inner ears
+	innerEarColor := color.RGBA{90, 90, 95, 255}
+	vector.DrawFilledRect(screen, x+15*p, y+14*p, 3*p, 5*p, innerEarColor, false)
+	vector.DrawFilledRect(screen, x+32*p, y+14*p, 3*p, 5*p, innerEarColor, false)
+
+	// Alert, intelligent eyes
+	eyeWhite := color.RGBA{255, 255, 255, 255}
+	vector.DrawFilledCircle(screen, x+18*p, y+26*p, 3*p, eyeWhite, false)
+	vector.DrawFilledCircle(screen, x+32*p, y+26*p, 3*p, eyeWhite, false)
+
+	eyeColor := color.RGBA{120, 80, 40, 255}
+	vector.DrawFilledCircle(screen, x+18*p, y+26*p, 2*p, eyeColor, false)
+	vector.DrawFilledCircle(screen, x+32*p, y+26*p, 2*p, eyeColor, false)
+
+	// Snout/muzzle
+	muzzleColor := color.RGBA{90, 90, 95, 255}
+	vector.DrawFilledRect(screen, x+16*p, y+30*p, 18*p, 8*p, muzzleColor, false)
+
+	// Black nose
+	noseColor := color.RGBA{20, 20, 20, 255}
+	vector.DrawFilledRect(screen, x+23*p, y+32*p, 4*p, 3*p, noseColor, false)
+
+	// White belly/chest
+	chestPatch := color.RGBA{220, 220, 220, 255}
+	vector.DrawFilledRect(screen, x+18*p, y+38*p, 14*p, 8*p, chestPatch, false)
+
+	// Frame (bright to stand out)
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{255, 150, 100, 255}, false)
+}
+
+// Draw White Cat avatar (Winston)
+func DrawWhiteCatAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Body/chest
+	chestColor := color.RGBA{250, 250, 250, 255}
+	vector.DrawFilledRect(screen, x+10*p, y+42*p, 30*p, 8*p, chestColor, false)
+
+	// Neck
+	neckColor := color.RGBA{245, 245, 245, 255}
+	vector.DrawFilledRect(screen, x+18*p, y+36*p, 14*p, 8*p, neckColor, false)
+
+	// Head shape
+	headColor := color.RGBA{255, 255, 255, 255}
+	vector.DrawFilledRect(screen, x+14*p, y+20*p, 22*p, 16*p, headColor, false)
+	vector.DrawFilledRect(screen, x+16*p, y+16*p, 18*p, 6*p, headColor, false)
+	vector.DrawFilledRect(screen, x+18*p, y+14*p, 14*p, 4*p, headColor, false)
+
+	// Ears (triangular)
+	earColor := color.RGBA{240, 240, 240, 255}
+	// Left ear
+	for i := 0; i < 8; i++ {
+		w := float32(8 - i)
+		vector.DrawFilledRect(screen, x+10*p+float32(i)*p/2, y+8*p+float32(i)*p, w*p, 2*p, earColor, false)
+	}
+	// Right ear
+	for i := 0; i < 8; i++ {
+		w := float32(8 - i)
+		vector.DrawFilledRect(screen, x+30*p-float32(i)*p/2, y+8*p+float32(i)*p, w*p, 2*p, earColor, false)
+	}
+
+	// Inner ears (pink)
+	innerEarColor := color.RGBA{255, 200, 220, 255}
+	vector.DrawFilledRect(screen, x+13*p, y+12*p, 4*p, 4*p, innerEarColor, false)
+	vector.DrawFilledRect(screen, x+33*p, y+12*p, 4*p, 4*p, innerEarColor, false)
+
+	// Eyes (blue for white cat)
+	eyeColor := color.RGBA{100, 180, 220, 255}
+	vector.DrawFilledRect(screen, x+18*p, y+22*p, 5*p, 4*p, eyeColor, false)
+	vector.DrawFilledRect(screen, x+27*p, y+22*p, 5*p, 4*p, eyeColor, false)
+
+	// Pupils (vertical slits)
+	pupilColor := color.RGBA{20, 20, 20, 255}
+	vector.DrawFilledRect(screen, x+20*p, y+23*p, 1*p, 3*p, pupilColor, false)
+	vector.DrawFilledRect(screen, x+29*p, y+23*p, 1*p, 3*p, pupilColor, false)
+
+	// Nose (pink)
+	noseColor := color.RGBA{255, 150, 180, 255}
+	vector.DrawFilledRect(screen, x+23*p, y+28*p, 4*p, 2*p, noseColor, false)
+	vector.DrawFilledRect(screen, x+24*p, y+27*p, 2*p, 1*p, noseColor, false)
+
+	// Mouth
+	mouthColor := color.RGBA{200, 180, 180, 255}
+	vector.DrawFilledRect(screen, x+25*p, y+30*p, 1*p, 3*p, mouthColor, false)
+	vector.DrawFilledRect(screen, x+23*p, y+32*p, 5*p, 1*p, mouthColor, false)
+
+	// Whiskers
+	whiskerColor := color.RGBA{200, 200, 200, 255}
+	vector.DrawFilledRect(screen, x+8*p, y+26*p, 8*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+8*p, y+28*p, 8*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+34*p, y+26*p, 8*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+34*p, y+28*p, 8*p, 1*p, whiskerColor, false)
+
+	// Frame
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{200, 200, 240, 255}, false)
+}
+
+// Draw Grey Cat avatar (Baxter)
+func DrawGreyCatAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Body/chest
+	chestColor := color.RGBA{130, 130, 130, 255}
+	vector.DrawFilledRect(screen, x+10*p, y+42*p, 30*p, 8*p, chestColor, false)
+
+	// Neck
+	neckColor := color.RGBA{120, 120, 120, 255}
+	vector.DrawFilledRect(screen, x+18*p, y+36*p, 14*p, 8*p, neckColor, false)
+
+	// Head shape
+	headColor := color.RGBA{140, 140, 140, 255}
+	vector.DrawFilledRect(screen, x+14*p, y+20*p, 22*p, 16*p, headColor, false)
+	vector.DrawFilledRect(screen, x+16*p, y+16*p, 18*p, 6*p, headColor, false)
+	vector.DrawFilledRect(screen, x+18*p, y+14*p, 14*p, 4*p, headColor, false)
+
+	// Ears (triangular)
+	earColor := color.RGBA{110, 110, 110, 255}
+	// Left ear
+	for i := 0; i < 8; i++ {
+		w := float32(8 - i)
+		vector.DrawFilledRect(screen, x+10*p+float32(i)*p/2, y+8*p+float32(i)*p, w*p, 2*p, earColor, false)
+	}
+	// Right ear
+	for i := 0; i < 8; i++ {
+		w := float32(8 - i)
+		vector.DrawFilledRect(screen, x+30*p-float32(i)*p/2, y+8*p+float32(i)*p, w*p, 2*p, earColor, false)
+	}
+
+	// Inner ears
+	innerEarColor := color.RGBA{255, 180, 200, 255}
+	vector.DrawFilledRect(screen, x+13*p, y+12*p, 4*p, 4*p, innerEarColor, false)
+	vector.DrawFilledRect(screen, x+33*p, y+12*p, 4*p, 4*p, innerEarColor, false)
+
+	// Eyes (green/yellow)
+	eyeColor := color.RGBA{150, 200, 100, 255}
+	vector.DrawFilledRect(screen, x+18*p, y+22*p, 5*p, 4*p, eyeColor, false)
+	vector.DrawFilledRect(screen, x+27*p, y+22*p, 5*p, 4*p, eyeColor, false)
+
+	// Pupils (vertical slits)
+	pupilColor := color.RGBA{20, 20, 20, 255}
+	vector.DrawFilledRect(screen, x+20*p, y+23*p, 1*p, 3*p, pupilColor, false)
+	vector.DrawFilledRect(screen, x+29*p, y+23*p, 1*p, 3*p, pupilColor, false)
+
+	// Nose (pink)
+	noseColor := color.RGBA{255, 150, 180, 255}
+	vector.DrawFilledRect(screen, x+23*p, y+28*p, 4*p, 2*p, noseColor, false)
+	vector.DrawFilledRect(screen, x+24*p, y+27*p, 2*p, 1*p, noseColor, false)
+
+	// Mouth
+	mouthColor := color.RGBA{80, 60, 50, 255}
+	vector.DrawFilledRect(screen, x+25*p, y+30*p, 1*p, 3*p, mouthColor, false)
+	vector.DrawFilledRect(screen, x+23*p, y+32*p, 5*p, 1*p, mouthColor, false)
+
+	// Whiskers (lighter grey)
+	whiskerColor := color.RGBA{90, 90, 90, 255}
+	vector.DrawFilledRect(screen, x+8*p, y+26*p, 8*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+8*p, y+28*p, 8*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+34*p, y+26*p, 8*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, x+34*p, y+28*p, 8*p, 1*p, whiskerColor, false)
+
+	// Tabby stripes
+	stripeColor := color.RGBA{80, 80, 80, 255}
+	vector.DrawFilledRect(screen, x+16*p, y+22*p, 2*p, 5*p, stripeColor, false)
+	vector.DrawFilledRect(screen, x+32*p, y+22*p, 2*p, 5*p, stripeColor, false)
+
+	// Frame
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{140, 140, 180, 255}, false)
 }

@@ -25,16 +25,16 @@ const (
 )
 
 type GameRoom struct {
-	currentGame       GameInterface
-	homeScreen        *HomeScreen
-	lobbyScreen       *LobbyScreen
-	networkClient     *NetworkClient
-	isOnlineMode      bool
-	updateAvailable   bool
-	updateVersion     string
-	updateURL         string
-	connectionState   ConnectionState
-	connectionError   string
+	currentGame     GameInterface
+	homeScreen      *HomeScreen
+	lobbyScreen     *LobbyScreen
+	networkClient   *NetworkClient
+	isOnlineMode    bool
+	updateAvailable bool
+	updateVersion   string
+	updateURL       string
+	connectionState ConnectionState
+	connectionError string
 }
 
 func (gr *GameRoom) Update() error {
@@ -155,7 +155,6 @@ func (gr *GameRoom) TryGoOnline() {
 	}() // End of goroutine
 }
 
-
 func main() {
 	log.Println("Starting Olive & Millie's Game Room")
 
@@ -178,7 +177,6 @@ func main() {
 		log.Println("Auto-connecting to server...")
 		gameRoom.TryGoOnline()
 	}()
-
 
 	if err := ebiten.RunGame(gameRoom); err != nil {
 		log.Fatal(err)
