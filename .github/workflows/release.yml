@@ -28,15 +28,17 @@ jobs:
         go-version: '1.21'
     
     - name: Build for ${{ matrix.name }}
+      env:
+        MACOSX_DEPLOYMENT_TARGET: "10.13"
       run: |
         APP_NAME="O&M Game Room"
         VERSION=${GITHUB_REF#refs/tags/v}
-        
+
         # Create app bundle
         APP_BUNDLE="build/darwin/${APP_NAME}.app"
         mkdir -p "$APP_BUNDLE/Contents/MacOS"
         mkdir -p "$APP_BUNDLE/Contents/Resources"
-        
+
         # Build (let Go detect the architecture)
         go build -o "$APP_BUNDLE/Contents/MacOS/game_client" .
         
