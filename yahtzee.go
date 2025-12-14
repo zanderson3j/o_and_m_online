@@ -735,10 +735,19 @@ func (g *YahtzeeGame) drawPlayerPanel(screen *ebiten.Image, player *YahtzeePlaye
 	nameY := int(y + height*0.3)
 	scoreY := int(y + height*0.6)
 
+	// Calculate available width for text (panel width - avatar - padding - margin)
+	availableTextWidth := width - avatarSize - 15
+
 	// Use smaller font for very compact layouts
 	if height < 70 {
 		// For very small panels, put text on single line
-		combinedText := fmt.Sprintf("%s: %d", player.name, player.totalScore)
+		// Use short format if width is tight
+		var combinedText string
+		if availableTextWidth < 80 {
+			combinedText = fmt.Sprintf("%d", player.totalScore) // Just score number
+		} else {
+			combinedText = fmt.Sprintf("%s: %d", player.name, player.totalScore)
+		}
 		ebitenutil.DebugPrintAt(screen, combinedText, textX, int(y+height/2-4))
 		if index == g.currentPlayer {
 			ebitenutil.DebugPrintAt(screen, combinedText, textX+1, int(y+height/2-4))
@@ -750,7 +759,13 @@ func (g *YahtzeeGame) drawPlayerPanel(screen *ebiten.Image, player *YahtzeePlaye
 			ebitenutil.DebugPrintAt(screen, player.name, textX+1, nameY)
 		}
 
-		scoreText := fmt.Sprintf("Score: %d", player.totalScore)
+		// Use shorter score format when width is limited
+		var scoreText string
+		if availableTextWidth < 80 {
+			scoreText = fmt.Sprintf("%d", player.totalScore) // Just the number
+		} else {
+			scoreText = fmt.Sprintf("Score: %d", player.totalScore)
+		}
 		ebitenutil.DebugPrintAt(screen, scoreText, textX, scoreY)
 		if index == g.currentPlayer {
 			ebitenutil.DebugPrintAt(screen, scoreText, textX+1, scoreY)
