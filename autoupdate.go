@@ -163,9 +163,9 @@ func (uc *UpdateChecker) DownloadAndInstall(release *GitHubRelease) error {
 	return nil
 }
 
-func checkAndPromptForUpdate() {
+func checkAndPromptForUpdate(gr *GameRoom) {
 	checker := NewUpdateChecker()
-	
+
 	hasUpdate, release, err := checker.CheckForUpdates()
 	if err != nil {
 		log.Printf("Failed to check for updates: %v", err)
@@ -173,12 +173,16 @@ func checkAndPromptForUpdate() {
 	}
 
 	if !hasUpdate {
+		log.Println("No updates available - running latest version")
 		return
 	}
 
 	log.Printf("New version available: %s (current: %s)", release.TagName, checker.currentVersion)
-	
-	// TODO: Show UI dialog instead of auto-updating
-	// For now, just log the availability
-	log.Println("To update, download the latest version from GitHub releases")
+
+	// Set update notification state
+	gr.updateAvailable = true
+	gr.updateVersion = release.TagName
+	gr.updateURL = fmt.Sprintf("https://github.com/%s/releases/tag/%s", githubRepo, release.TagName)
+
+	log.Printf("Update available! Visit: %s", gr.updateURL)
 }

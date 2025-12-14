@@ -16,11 +16,14 @@ const (
 )
 
 type GameRoom struct {
-	currentGame   GameInterface
-	homeScreen    *HomeScreen
-	lobbyScreen   *LobbyScreen
-	networkClient *NetworkClient
-	isOnlineMode  bool
+	currentGame      GameInterface
+	homeScreen       *HomeScreen
+	lobbyScreen      *LobbyScreen
+	networkClient    *NetworkClient
+	isOnlineMode     bool
+	updateAvailable  bool
+	updateVersion    string
+	updateURL        string
 }
 
 func (gr *GameRoom) Update() error {
@@ -148,10 +151,7 @@ func (gr *GameRoom) TryGoOnline() {
 
 func main() {
 	log.Println("Starting Olive & Millie's Game Room")
-	
-	// Check for updates
-	checkForUpdates()
-	
+
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Olive & Millie's Game Room - ONLINE")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
@@ -160,6 +160,9 @@ func main() {
 	gameRoom := &GameRoom{
 		homeScreen: NewHomeScreen(),
 	}
+
+	// Check for updates (needs gameRoom to exist first)
+	checkForUpdates(gameRoom)
 
 	// Start in offline mode for now
 	log.Println("Starting in offline mode. Click 'Go Online' to connect.")

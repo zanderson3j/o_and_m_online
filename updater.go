@@ -8,9 +8,9 @@ import (
 const currentVersion = "1.0.7"
 
 // checkForUpdates checks for new versions and logs the current version
-func checkForUpdates() {
+func checkForUpdates(gr *GameRoom) {
 	log.Printf("O&M Game Room v%s (%s/%s)", currentVersion, runtime.GOOS, runtime.GOARCH)
-	
+
 	// Check for updates in background
-	go checkAndPromptForUpdate()
+	go checkAndPromptForUpdate(gr)
 }
