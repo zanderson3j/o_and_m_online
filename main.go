@@ -25,19 +25,31 @@ const (
 )
 
 type GameRoom struct {
-	currentGame     GameInterface
-	homeScreen      *HomeScreen
-	lobbyScreen     *LobbyScreen
-	networkClient   *NetworkClient
-	isOnlineMode    bool
-	updateAvailable bool
-	updateVersion   string
-	updateURL       string
-	connectionState ConnectionState
-	connectionError string
+	currentGame            GameInterface
+	homeScreen             *HomeScreen
+	lobbyScreen            *LobbyScreen
+	introScreen            *IntroScreen
+	networkClient          *NetworkClient
+	isOnlineMode           bool
+	introComplete          bool
+	needsAvatarSelectShow  bool // Show avatar select when lobby becomes available
+	updateAvailable        bool
+	updateVersion          string
+	updateURL              string
+	connectionState        ConnectionState
+	connectionError        string
 }
 
 func (gr *GameRoom) Update() error {
+	// Show intro screen first if not complete
+	if !gr.introComplete && gr.introScreen != nil {
+		return gr.introScreen.Update(gr)
+	}
+	// Check if we need to show avatar select after intro
+	if gr.needsAvatarSelectShow && gr.lobbyScreen != nil {
+		gr.lobbyScreen.ShowAvatarSelection()
+		gr.needsAvatarSelectShow = false
+	}
 	if gr.isOnlineMode && gr.lobbyScreen != nil {
 		return gr.lobbyScreen.Update(gr)
 	}
@@ -48,6 +60,11 @@ func (gr *GameRoom) Update() error {
 }
 
 func (gr *GameRoom) Draw(screen *ebiten.Image) {
+	// Show intro screen first if not complete
+	if !gr.introComplete && gr.introScreen != nil {
+		gr.introScreen.Draw(screen)
+		return
+	}
 	if gr.isOnlineMode && gr.lobbyScreen != nil {
 		gr.lobbyScreen.Draw(screen, gr)
 	} else if gr.currentGame != nil {
@@ -165,6 +182,7 @@ func main() {
 
 	gameRoom := &GameRoom{
 		homeScreen:      NewHomeScreen(),
+		introScreen:     NewIntroScreen(),
 		connectionState: StateConnecting,
 	}
 

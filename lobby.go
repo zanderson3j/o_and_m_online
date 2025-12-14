@@ -221,6 +221,11 @@ func (ls *LobbyScreen) Reset() {
 	ls.selectedGame = ""
 }
 
+// ShowAvatarSelection opens the avatar selection screen
+func (ls *LobbyScreen) ShowAvatarSelection() {
+	ls.showAvatarSelect = true
+}
+
 func (ls *LobbyScreen) Update(gr *GameRoom) error {
 	mx, my := ebiten.CursorPosition()
 
