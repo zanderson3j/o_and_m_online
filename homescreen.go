@@ -11,8 +11,8 @@ import (
 )
 
 type HomeScreen struct {
-	gameButtons    []*Button
-	goOnlineButton *Button
+	gameButtons []*Button
+	retryButton *Button
 }
 
 func NewHomeScreen() *HomeScreen {
@@ -64,13 +64,13 @@ func NewHomeScreen() *HomeScreen {
 		enabled: true,
 	}
 
-	// Add "Go Online" button at the bottom
-	hs.goOnlineButton = &Button{
-		x:       float64(screenWidth/2) - 150,
-		y:       float64(screenHeight) - 80,
-		width:   300,
+	// Add "Retry" button (only shown when connection fails)
+	hs.retryButton = &Button{
+		x:       float64(screenWidth/2) - 100,
+		y:       float64(screenHeight) - 100,
+		width:   200,
 		height:  60,
-		text:    "GO ONLINE",
+		text:    "RETRY CONNECTION",
 		enabled: true,
 	}
 
@@ -78,40 +78,21 @@ func NewHomeScreen() *HomeScreen {
 }
 
 func (hs *HomeScreen) Update(gr *GameRoom) error {
-	// Update hover states
-	x, y := ebiten.CursorPosition()
-	for _, btn := range hs.gameButtons {
-		btn.hovered = btn.Contains(x, y)
-	}
-
-	// Update Go Online button hover state (only show if offline)
-	if !gr.isOnlineMode && hs.goOnlineButton != nil {
-		hs.goOnlineButton.hovered = hs.goOnlineButton.Contains(x, y)
-	}
-
-	// Handle button clicks
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+	// Only show home screen if not connected
+	if gr.connectionState != StateConnected {
 		x, y := ebiten.CursorPosition()
-		log.Printf("Click at (%d, %d), isOnlineMode=%v", x, y, gr.isOnlineMode)
 
-		if hs.gameButtons[0].hovered {
-			log.Println("Yahtzee button clicked")
-			gr.SwitchToGame(NewYahtzeeGame())
-		} else if hs.gameButtons[1].hovered {
-			log.Println("Santorini button clicked")
-			gr.SwitchToGame(NewSantoriniGame())
-		} else if hs.gameButtons[2].hovered {
-			log.Println("Connect Four button clicked")
-			gr.SwitchToGame(NewConnectFourGame())
-		} else if hs.gameButtons[3].hovered {
-			log.Println("Memory button clicked")
-			gr.SwitchToGame(NewMemoryGame())
-		} else if !gr.isOnlineMode && hs.goOnlineButton != nil && hs.goOnlineButton.hovered {
-			log.Println("Go Online button clicked!")
-			// Try to reconnect
-			gr.TryGoOnline()
-		} else if gr.isOnlineMode && hs.goOnlineButton != nil && hs.goOnlineButton.hovered {
-			log.Println("Go Online clicked but already online")
+		// Update retry button hover state (only when connection failed)
+		if gr.connectionState == StateFailed && hs.retryButton != nil {
+			hs.retryButton.hovered = hs.retryButton.Contains(x, y)
+		}
+
+		// Handle retry button click
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			if gr.connectionState == StateFailed && hs.retryButton != nil && hs.retryButton.hovered {
+				log.Println("Retry button clicked - attempting to reconnect")
+				gr.TryGoOnline()
+			}
 		}
 	}
 
@@ -147,24 +128,44 @@ func (hs *HomeScreen) Draw(screen *ebiten.Image, gr *GameRoom) {
 	DrawPlayer1Avatar(screen, titleX-80, titleY+15, 1.0)
 	DrawPlayer2Avatar(screen, titleX+titleWidth+30, titleY+15, 1.0)
 
-	// Draw game selection buttons
-	for _, btn := range hs.gameButtons {
-		hs.drawGameButton(screen, btn)
+	// Draw connection status message
+	var statusText string
+	var statusColor color.RGBA
+
+	switch gr.connectionState {
+	case StateConnecting:
+		statusText = "Connecting to server..."
+		statusColor = color.RGBA{100, 150, 220, 255}
+	case StateFailed:
+		statusText = "Connection Failed"
+		statusColor = color.RGBA{200, 80, 80, 255}
+	case StateConnected:
+		statusText = "Connected!"
+		statusColor = color.RGBA{80, 200, 80, 255}
 	}
 
-	// Draw "Go Online" button if in offline mode
-	if !gr.isOnlineMode && hs.goOnlineButton != nil {
-		DrawButton(screen, hs.goOnlineButton)
+	// Draw status box
+	statusWidth := float32(len(statusText)*6 + 40)
+	statusX := float32(screenWidth/2) - statusWidth/2
+	statusY := float32(400)
+	vector.DrawFilledRect(screen, statusX, statusY, statusWidth, 50, color.RGBA{30, 50, 80, 200}, false)
+	vector.StrokeRect(screen, statusX, statusY, statusWidth, 50, 3, statusColor, false)
+
+	// Draw status text
+	textX := int(statusX + statusWidth/2 - float32(len(statusText)*6)/2)
+	ebitenutil.DebugPrintAt(screen, statusText, textX, int(statusY+17))
+	ebitenutil.DebugPrintAt(screen, statusText, textX+1, int(statusY+17)) // Bold
+
+	// Draw error message if failed
+	if gr.connectionState == StateFailed && gr.connectionError != "" {
+		errorX := screenWidth/2 - len(gr.connectionError)*3
+		ebitenutil.DebugPrintAt(screen, gr.connectionError, errorX, int(statusY+60))
 	}
 
-	// Instructions
-	instructionText := "Select a game to play!"
-	if !gr.isOnlineMode {
-		instructionText = "Offline Mode - Click 'Go Online' to connect"
+	// Draw retry button if connection failed
+	if gr.connectionState == StateFailed && hs.retryButton != nil {
+		DrawButton(screen, hs.retryButton)
 	}
-	instructionX := screenWidth/2 - len(instructionText)*3
-	vector.DrawFilledRect(screen, float32(instructionX-10), 550, float32(len(instructionText)*6+20), 30, color.RGBA{30, 50, 80, 200}, false)
-	ebitenutil.DebugPrintAt(screen, instructionText, instructionX, 560)
 	
 }
 

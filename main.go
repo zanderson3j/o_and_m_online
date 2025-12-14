@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -15,15 +16,25 @@ const (
 	// serverURL    = "ws://127.0.0.1:8080/ws" // Local testing
 )
 
+type ConnectionState int
+
+const (
+	StateConnecting ConnectionState = iota
+	StateConnected
+	StateFailed
+)
+
 type GameRoom struct {
-	currentGame      GameInterface
-	homeScreen       *HomeScreen
-	lobbyScreen      *LobbyScreen
-	networkClient    *NetworkClient
-	isOnlineMode     bool
-	updateAvailable  bool
-	updateVersion    string
-	updateURL        string
+	currentGame       GameInterface
+	homeScreen        *HomeScreen
+	lobbyScreen       *LobbyScreen
+	networkClient     *NetworkClient
+	isOnlineMode      bool
+	updateAvailable   bool
+	updateVersion     string
+	updateURL         string
+	connectionState   ConnectionState
+	connectionError   string
 }
 
 func (gr *GameRoom) Update() error {
@@ -79,30 +90,26 @@ func (gr *GameRoom) SwitchToOnline() {
 func (gr *GameRoom) TryGoOnline() {
 	log.Println("Attempting to connect to server...")
 
-	// Show connecting state immediately
-	if gr.homeScreen != nil && gr.homeScreen.goOnlineButton != nil {
-		gr.homeScreen.goOnlineButton.text = "CONNECTING..."
-		gr.homeScreen.goOnlineButton.enabled = false
-	}
+	// Set connecting state
+	gr.connectionState = StateConnecting
+	gr.connectionError = ""
 
 	// Connect in goroutine to avoid blocking
 	go func() {
 		// Try to connect
-		maxRetries := 10
-		retryDelay := 5
-		
+		maxRetries := 3
+		retryDelay := 2
+
 		networkClient, err := NewNetworkClientWithRetry(serverURL, maxRetries, retryDelay)
 		if err != nil {
 			log.Printf("Failed to connect: %v", err)
-			// Reset button
-			if gr.homeScreen != nil && gr.homeScreen.goOnlineButton != nil {
-				gr.homeScreen.goOnlineButton.text = "GO ONLINE"
-				gr.homeScreen.goOnlineButton.enabled = true
-			}
+			gr.connectionState = StateFailed
+			gr.connectionError = fmt.Sprintf("Connection failed: %v", err)
 			return
 		}
 
 		log.Println("Connected successfully!")
+		gr.connectionState = StateConnected
 		gr.networkClient = networkClient
 		gr.lobbyScreen = NewLobbyScreen(networkClient)
 		gr.isOnlineMode = true
@@ -158,21 +165,17 @@ func main() {
 	ebiten.SetVsyncEnabled(true)
 
 	gameRoom := &GameRoom{
-		homeScreen: NewHomeScreen(),
+		homeScreen:      NewHomeScreen(),
+		connectionState: StateConnecting,
 	}
 
 	// Check for updates (needs gameRoom to exist first)
 	checkForUpdates(gameRoom)
 
-	// Start in offline mode for now
-	log.Println("Starting in offline mode. Click 'Go Online' to connect.")
-	gameRoom.networkClient = nil
-	gameRoom.isOnlineMode = false
-	
-	// Auto-connect for desktop
+	// Auto-connect on startup
 	go func() {
 		time.Sleep(100 * time.Millisecond) // Small delay to ensure UI is ready
-		log.Println("Desktop: Auto-connecting to server...")
+		log.Println("Auto-connecting to server...")
 		gameRoom.TryGoOnline()
 	}()
 
