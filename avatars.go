@@ -33,11 +33,12 @@ const (
 	AvatarShepherd
 	AvatarWhiteCat
 	AvatarGreyCat
+	AvatarRibbonPuddles
 	AvatarNumTypes
 )
 
 var avatarNames = []string{
-	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Hen-ry", "Tomouse", "Karabou", "Valkyrie", "Eleanor", "Stella", "Huckleberry", "Winston", "Baxter",
+	"Human", "Teddy", "Kaycat", "Zach Rabbit", "Kiraffe", "Owlive", "Milliepede", "Sweet Puppy Paw", "Tygler", "Chimpancici", "Papapus", "Kaitlynx", "Reagator", "Ocelivia", "Hen-ry", "Tomouse", "Karabou", "Valkyrie", "Eleanor", "Stella", "Huckleberry", "Winston", "Baxter", "Ribbon & Puddles",
 }
 
 func GetAvatarName(avatarType AvatarType) string {
@@ -95,6 +96,8 @@ func DrawAvatar(screen *ebiten.Image, avatarType AvatarType, x, y, scale float32
 		DrawWhiteCatAvatar(screen, x, y, scale)
 	case AvatarGreyCat:
 		DrawGreyCatAvatar(screen, x, y, scale)
+	case AvatarRibbonPuddles:
+		DrawRibbonPuddlesAvatar(screen, x, y, scale)
 	}
 }
 
@@ -1356,4 +1359,118 @@ func DrawGreyCatAvatar(screen *ebiten.Image, x, y, scale float32) {
 
 	// Frame
 	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{140, 140, 180, 255}, false)
+}
+
+// Draw Ribbon & Puddles avatar - two orange kitten sisters
+func DrawRibbonPuddlesAvatar(screen *ebiten.Image, x, y, scale float32) {
+	p := float32(1) * scale
+
+	// Orange color palette
+	orangeFur := color.RGBA{255, 140, 50, 255}
+	darkOrange := color.RGBA{220, 100, 30, 255}
+	lightOrange := color.RGBA{255, 180, 100, 255}
+	pinkNose := color.RGBA{255, 150, 180, 255}
+	pinkInnerEar := color.RGBA{255, 180, 200, 255}
+	eyeColor := color.RGBA{100, 180, 100, 255}
+	pupilColor := color.RGBA{20, 20, 20, 255}
+	whiskerColor := color.RGBA{200, 120, 60, 255}
+
+	// === Left kitten (Ribbon) - slightly larger ===
+	lx := x + 2*p
+
+	// Body
+	vector.DrawFilledRect(screen, lx+2*p, y+38*p, 18*p, 10*p, orangeFur, false)
+
+	// Neck
+	vector.DrawFilledRect(screen, lx+6*p, y+32*p, 10*p, 8*p, darkOrange, false)
+
+	// Head
+	vector.DrawFilledRect(screen, lx+4*p, y+18*p, 14*p, 14*p, orangeFur, false)
+	vector.DrawFilledRect(screen, lx+5*p, y+15*p, 12*p, 5*p, orangeFur, false)
+
+	// Ears
+	for i := 0; i < 5; i++ {
+		w := float32(5 - i)
+		vector.DrawFilledRect(screen, lx+3*p+float32(i)*p/2, y+10*p+float32(i)*p, w*p, 2*p, darkOrange, false)
+	}
+	for i := 0; i < 5; i++ {
+		w := float32(5 - i)
+		vector.DrawFilledRect(screen, lx+14*p-float32(i)*p/2, y+10*p+float32(i)*p, w*p, 2*p, darkOrange, false)
+	}
+
+	// Inner ears
+	vector.DrawFilledRect(screen, lx+5*p, y+13*p, 2*p, 2*p, pinkInnerEar, false)
+	vector.DrawFilledRect(screen, lx+15*p, y+13*p, 2*p, 2*p, pinkInnerEar, false)
+
+	// Eyes
+	vector.DrawFilledRect(screen, lx+6*p, y+20*p, 4*p, 3*p, eyeColor, false)
+	vector.DrawFilledRect(screen, lx+12*p, y+20*p, 4*p, 3*p, eyeColor, false)
+
+	// Pupils
+	vector.DrawFilledRect(screen, lx+7*p, y+21*p, 1*p, 2*p, pupilColor, false)
+	vector.DrawFilledRect(screen, lx+13*p, y+21*p, 1*p, 2*p, pupilColor, false)
+
+	// Nose
+	vector.DrawFilledRect(screen, lx+9*p, y+25*p, 3*p, 2*p, pinkNose, false)
+
+	// Mouth
+	vector.DrawFilledRect(screen, lx+10*p, y+27*p, 1*p, 2*p, darkOrange, false)
+
+	// Whiskers
+	vector.DrawFilledRect(screen, lx+1*p, y+24*p, 5*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, lx+16*p, y+24*p, 5*p, 1*p, whiskerColor, false)
+
+	// Tabby stripes on forehead
+	vector.DrawFilledRect(screen, lx+10*p, y+16*p, 2*p, 3*p, darkOrange, false)
+
+	// === Right kitten (Puddles) - slightly smaller ===
+	rx := x + 26*p
+
+	// Body
+	vector.DrawFilledRect(screen, rx+2*p, y+40*p, 16*p, 8*p, lightOrange, false)
+
+	// Neck
+	vector.DrawFilledRect(screen, rx+5*p, y+35*p, 8*p, 6*p, orangeFur, false)
+
+	// Head
+	vector.DrawFilledRect(screen, rx+3*p, y+22*p, 12*p, 13*p, lightOrange, false)
+	vector.DrawFilledRect(screen, rx+4*p, y+19*p, 10*p, 5*p, lightOrange, false)
+
+	// Ears
+	for i := 0; i < 4; i++ {
+		w := float32(4 - i)
+		vector.DrawFilledRect(screen, rx+2*p+float32(i)*p/2, y+15*p+float32(i)*p, w*p, 2*p, orangeFur, false)
+	}
+	for i := 0; i < 4; i++ {
+		w := float32(4 - i)
+		vector.DrawFilledRect(screen, rx+12*p-float32(i)*p/2, y+15*p+float32(i)*p, w*p, 2*p, orangeFur, false)
+	}
+
+	// Inner ears
+	vector.DrawFilledRect(screen, rx+4*p, y+17*p, 2*p, 2*p, pinkInnerEar, false)
+	vector.DrawFilledRect(screen, rx+12*p, y+17*p, 2*p, 2*p, pinkInnerEar, false)
+
+	// Eyes
+	vector.DrawFilledRect(screen, rx+5*p, y+24*p, 3*p, 3*p, eyeColor, false)
+	vector.DrawFilledRect(screen, rx+10*p, y+24*p, 3*p, 3*p, eyeColor, false)
+
+	// Pupils
+	vector.DrawFilledRect(screen, rx+6*p, y+25*p, 1*p, 2*p, pupilColor, false)
+	vector.DrawFilledRect(screen, rx+11*p, y+25*p, 1*p, 2*p, pupilColor, false)
+
+	// Nose
+	vector.DrawFilledRect(screen, rx+7*p, y+28*p, 3*p, 2*p, pinkNose, false)
+
+	// Mouth
+	vector.DrawFilledRect(screen, rx+8*p, y+30*p, 1*p, 2*p, orangeFur, false)
+
+	// Whiskers
+	vector.DrawFilledRect(screen, rx+1*p, y+27*p, 4*p, 1*p, whiskerColor, false)
+	vector.DrawFilledRect(screen, rx+13*p, y+27*p, 4*p, 1*p, whiskerColor, false)
+
+	// Tabby stripes on forehead
+	vector.DrawFilledRect(screen, rx+8*p, y+20*p, 2*p, 3*p, orangeFur, false)
+
+	// Frame (warm orange-ish border)
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{255, 160, 100, 255}, false)
 }
