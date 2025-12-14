@@ -15,7 +15,7 @@ jobs:
           - os: macos-latest  # Latest macOS (Apple Silicon)
             arch: arm64
             name: apple_silicon
-          - os: macos-12  # Intel runner (last free Intel macOS)
+          - os: macos-15-intel  # Intel runner (free for public repos)
             arch: amd64
             name: intel
     
