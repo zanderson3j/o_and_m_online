@@ -6,7 +6,7 @@ The game is packaged as a native macOS application with:
 - Custom app icon
 - DMG installer for easy distribution
 - Support for both Intel and Apple Silicon Macs
-- Auto-update checking (logs only for now)
+- Auto-update notifications with one-click download
 
 ## Building for macOS
 
@@ -58,15 +58,15 @@ O&M Game Room.app/
 The app checks for updates on startup by querying GitHub releases.
 
 ### Current Implementation
-- Checks GitHub releases API for new versions
-- Logs when updates are available
-- No automatic installation yet (manual download required)
+- Checks GitHub releases API for new versions on startup
+- Shows persistent notification in lobby (bottom-left corner)
+- Clickable notification opens browser to download page
+- Users can manually download and install updates
 
 ### Future Improvements
-1. **UI Dialog**: Show update notification with download button
-2. **Background Download**: Download update while playing
-3. **Sparkle Integration**: Use native macOS update framework
-4. **Code Signing**: Sign the app for Gatekeeper approval
+1. **Code Signing**: Sign the app for Gatekeeper approval ($99/year Apple Developer account)
+2. **Automatic Installation**: Once signed, enable seamless background updates
+3. **Sparkle Integration**: Use native macOS update framework for professional update experience
 
 ## Icon Requirements
 
@@ -84,10 +84,12 @@ The app uses `oam_icon.png` converted to `.icns` format with these sizes:
 ## Troubleshooting
 
 ### "App is damaged" Error
-If users see this error, the app needs to be code signed or users need to:
+If users see this error on first launch (expected for unsigned apps):
 1. Right-click the app and select "Open"
-2. Click "Open" in the dialog
-3. Or remove quarantine: `xattr -d com.apple.quarantine /Applications/O\&M\ Game\ Room.app`
+2. Click "Open" in the security dialog
+3. Or use Security & Privacy settings to "Open Anyway"
+
+See INSTALL.txt (included in DMG) for detailed instructions.
 
 ### Auto-Update Not Working
 Check:
@@ -97,7 +99,6 @@ Check:
 
 ## Next Steps
 
-1. **Code Signing**: Get an Apple Developer certificate ($99/year)
+1. **Code Signing**: Get an Apple Developer certificate ($99/year) for seamless updates
 2. **Notarization**: Submit app to Apple for malware scanning
-3. **Update UI**: Add in-app update notifications
-4. **Windows/Linux**: Extend packaging to other platforms
+3. **Windows/Linux**: Extend packaging to other platforms

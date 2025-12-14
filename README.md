@@ -5,31 +5,38 @@ A collection of multiplayer games with online support using WebSockets.
 ## Features
 
 - **4 Games**: Yahtzee, Santorini, Connect Four, Memory Match
-- **Online Multiplayer**: Play with friends over the network
+- **Online Multiplayer**: Play with friends over the network (always-online)
 - **Lobby System**: Create or join rooms for each game type
 - **Studio Ghibli Theme**: Whimsical forest aesthetic with kodama spirits
 - **Cross-Platform Desktop Client**: Built with Go and Ebiten
+- **Auto-Update Notifications**: Get notified of new versions in the lobby
+- **Native macOS App**: DMG installer for both Intel and Apple Silicon
 
-## How to Run
+## Download & Install
+
+**For macOS Users:**
+- Download from [GitHub Releases](https://github.com/zanderson3j/o_and_m_online/releases/latest)
+- Or visit the [GitHub Pages site](https://zanderson3j.github.io/o_and_m_online/)
+- See INSTALL.txt (included in DMG) for detailed installation instructions
+
+**For Developers:**
 
 ### 1. Start the Server
 
 ```bash
 cd server
-./server
+go run main.go
 ```
 
 The server will start on port 8080.
 
 ### 2. Start the Desktop Client
 
-In separate terminals (one for each player):
-
 ```bash
-./game_room_online
+go run .
 ```
 
-The client will automatically connect to `ws://localhost:8080/ws`.
+The client will automatically connect to the online server (or localhost for development).
 
 ## How to Play
 
@@ -107,7 +114,14 @@ Still needed for full multiplayer gameplay:
 To modify the server URL, edit `serverURL` constant in `main.go`:
 
 ```go
-const serverURL = "ws://localhost:8080/ws"
+const serverURL = "ws://localhost:8080/ws"  // For local development
+// const serverURL = "wss://your-server.com/ws"  // For production
 ```
 
 For remote play, replace `localhost` with the server's IP address.
+
+## Releases
+
+- **GitHub Actions**: Automatically builds DMG files for Intel and Apple Silicon on every tag
+- **Auto-Updates**: Users get notified of new versions in the lobby
+- **GitHub Pages**: Landing page with download links at [zanderson3j.github.io/o_and_m_online](https://zanderson3j.github.io/o_and_m_online/)

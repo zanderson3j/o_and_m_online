@@ -14,34 +14,26 @@ First public release of O&M Game Room!
 ### Installation
 
 1. Download the DMG for your Mac:
-   - **Apple Silicon** (M1/M2/M3): `OandM_Game_Room_1.0.0_apple_silicon.dmg`
-   - **Intel**: `OandM_Game_Room_1.0.0_intel.dmg`
+   - **Apple Silicon** (M1/M2/M3/M4): `OandM_Game_Room_*_apple_silicon.dmg`
+   - **Intel**: `OandM_Game_Room_*_intel.dmg`
 
 2. Open the downloaded DMG file
 
-3. Drag "O&M Game Room" to your Applications folder
+3. Read the INSTALL.txt file for detailed instructions
 
-4. **IMPORTANT - First time opening:**
-   
-   **If you see "damaged and can't be opened":**
-   - Open Terminal (find it in Applications > Utilities)
-   - Copy and paste this command:
-     ```
-     xattr -cr "/Applications/O&M Game Room.app"
-     ```
-   - Press Enter
-   - Now open the app normally
-   
-   **Alternative method:**
+4. Drag "O&M Game Room" to your Applications folder
+
+5. **First time opening** (required for unsigned apps):
    - Right-click on "O&M Game Room" in Applications
    - Select "Open" from the menu
    - Click "Open" in the security dialog
+   - If that doesn't work, see INSTALL.txt for alternative methods
 
-5. Enjoy playing!
+6. Enjoy playing!
 
 ### Known Issues
-- First launch requires right-click → Open due to no code signing (this is normal)
-- Auto-update checks for new versions but requires manual download for now
+- First launch requires right-click → Open due to no code signing (this is normal for unsigned apps)
+- Auto-updates show notification with download link, but installation is manual
 
 ### System Requirements
 - macOS 10.13 or later
