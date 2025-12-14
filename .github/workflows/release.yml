@@ -54,7 +54,6 @@ jobs:
         DMG_DIR="build/darwin/dmg"
         mkdir -p "$DMG_DIR"
         cp -R "$APP_BUNDLE" "$DMG_DIR/"
-        cp install_helper.command "$DMG_DIR/"
         ln -s /Applications "$DMG_DIR/Applications"
         
         DMG_NAME="OandM_Game_Room_${VERSION}_${{ matrix.name }}.dmg"
@@ -90,19 +89,20 @@ jobs:
         files: artifacts/*/*
         body: |
           ## O&M Game Room Release
-          
+
           ### macOS Downloads
-          - Intel Macs: Download the `intel` DMG
-          - Apple Silicon Macs: Download the `apple_silicon` DMG
-          
+          - **Intel Macs**: Download the `intel` DMG
+          - **Apple Silicon Macs** (M1/M2/M3): Download the `apple_silicon` DMG
+
           ### Installation
           1. Download the appropriate DMG for your Mac
           2. Open the DMG file
           3. Drag "O&M Game Room" to your Applications folder
-          4. If you see "app is damaged", double-click `install_helper.command` in the DMG
-          
+          4. Launch and enjoy!
+
+          **Note**: This app is currently unsigned. On first launch, you may need to right-click the app and select "Open" to bypass Gatekeeper security.
+
           ### What's New
-          - Automatic builds for both Intel and Apple Silicon
-          - Improved installer with ad-hoc signing
+          See release notes below for changes in this version.
         draft: false
         prerelease: false
