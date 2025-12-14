@@ -12,19 +12,20 @@ import (
 )
 
 type LobbyScreen struct {
-	networkClient    *NetworkClient
-	createButtons    []*Button // One button per game type
-	roomButtons      []*Button // Buttons for joinable rooms
-	createRoomButton *Button   // Button to create new room
-	backButton       *Button
-	startButton      *Button
-	avatarButtons    []*Button // Avatar selection buttons
-	selectedGame     string
-	selectedAvatar   AvatarType
-	showingRooms     bool
-	inRoom           bool
-	waitingForGame   bool
-	showAvatarSelect bool
+	networkClient       *NetworkClient
+	createButtons       []*Button // One button per game type
+	roomButtons         []*Button // Buttons for joinable rooms
+	createRoomButton    *Button   // Button to create new room
+	backButton          *Button
+	startButton         *Button
+	avatarButtons       []*Button // Avatar selection buttons
+	selectedGame        string
+	selectedAvatar      AvatarType
+	showingRooms        bool
+	inRoom              bool
+	waitingForGame      bool
+	showAvatarSelect    bool
+	updateMessageHovered bool
 }
 
 func NewLobbyScreen(nc *NetworkClient) *LobbyScreen {
@@ -194,6 +195,23 @@ func (ls *LobbyScreen) Reset() {
 func (ls *LobbyScreen) Update(gr *GameRoom) error {
 	mx, my := ebiten.CursorPosition()
 
+	// Update hover state for update message (bottom left)
+	if gr.updateAvailable {
+		updateMsgX := float64(20)
+		updateMsgY := float64(screenHeight - 40)
+		updateMsgWidth := float64(300)
+		updateMsgHeight := float64(30)
+		ls.updateMessageHovered = float64(mx) >= updateMsgX && float64(mx) <= updateMsgX+updateMsgWidth &&
+			float64(my) >= updateMsgY && float64(my) <= updateMsgY+updateMsgHeight
+	}
+
+	// Handle update message click
+	if gr.updateAvailable && ls.updateMessageHovered && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		log.Printf("Opening update URL: %s", gr.updateURL)
+		OpenBrowser(gr.updateURL)
+		return nil
+	}
+
 	if ls.showAvatarSelect {
 		// Avatar selection mode
 		for _, btn := range ls.avatarButtons {
@@ -362,6 +380,11 @@ func (ls *LobbyScreen) Draw(screen *ebiten.Image, gr *GameRoom) {
 		ls.drawRoomList(screen)
 	} else {
 		ls.drawGameSelection(screen)
+	}
+
+	// Draw update notification (bottom left, always visible in lobby)
+	if gr.updateAvailable {
+		ls.drawUpdateMessage(screen, gr)
 	}
 }
 
@@ -600,4 +623,29 @@ func (ls *LobbyScreen) drawAvatarSelection(screen *ebiten.Image) {
 
 	// Back button
 	ls.drawButton(screen, ls.backButton)
+}
+
+func (ls *LobbyScreen) drawUpdateMessage(screen *ebiten.Image, gr *GameRoom) {
+	msgX := float32(20)
+	msgY := float32(screenHeight - 40)
+	msgWidth := float32(300)
+	msgHeight := float32(30)
+
+	// Background color - subtle green with hover effect
+	bgColor := color.RGBA{40, 80, 40, 200}
+	borderColor := color.RGBA{60, 120, 60, 255}
+	if ls.updateMessageHovered {
+		bgColor = color.RGBA{60, 100, 60, 220}
+		borderColor = color.RGBA{80, 160, 80, 255}
+	}
+
+	// Draw background
+	vector.DrawFilledRect(screen, msgX, msgY, msgWidth, msgHeight, bgColor, false)
+	vector.StrokeRect(screen, msgX, msgY, msgWidth, msgHeight, 2, borderColor, false)
+
+	// Draw text
+	message := "Update " + gr.updateVersion + " available - click here"
+	textX := int(msgX + 10)
+	textY := int(msgY + msgHeight/2 - 4)
+	ebitenutil.DebugPrintAt(screen, message, textX, textY)
 }

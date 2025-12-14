@@ -11,9 +11,8 @@ import (
 )
 
 type HomeScreen struct {
-	gameButtons      []*Button
-	goOnlineButton   *Button
-	updateBannerHovered bool
+	gameButtons    []*Button
+	goOnlineButton *Button
 }
 
 func NewHomeScreen() *HomeScreen {
@@ -90,26 +89,12 @@ func (hs *HomeScreen) Update(gr *GameRoom) error {
 		hs.goOnlineButton.hovered = hs.goOnlineButton.Contains(x, y)
 	}
 
-	// Update update banner hover state
-	if gr.updateAvailable {
-		bannerX := float64(10)
-		bannerY := float64(10)
-		bannerWidth := float64(screenWidth - 20)
-		bannerHeight := float64(50)
-		hs.updateBannerHovered = float64(x) >= bannerX && float64(x) <= bannerX+bannerWidth &&
-			float64(y) >= bannerY && float64(y) <= bannerY+bannerHeight
-	}
-
 	// Handle button clicks
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		log.Printf("Click at (%d, %d), isOnlineMode=%v", x, y, gr.isOnlineMode)
 
-		// Check update banner click first
-		if gr.updateAvailable && hs.updateBannerHovered {
-			log.Printf("Opening update URL: %s", gr.updateURL)
-			OpenBrowser(gr.updateURL)
-		} else if hs.gameButtons[0].hovered {
+		if hs.gameButtons[0].hovered {
 			log.Println("Yahtzee button clicked")
 			gr.SwitchToGame(NewYahtzeeGame())
 		} else if hs.gameButtons[1].hovered {
@@ -138,11 +123,6 @@ func (hs *HomeScreen) Draw(screen *ebiten.Image, gr *GameRoom) {
 	DrawForestBackground(screen)
 	DrawKodamaSpirits(screen)
 	DrawOMLogo(screen)
-
-	// Draw update notification banner if available
-	if gr.updateAvailable {
-		hs.drawUpdateBanner(screen, gr)
-	}
 
 	// Draw title
 	titleWidth := float32(500)
@@ -209,36 +189,4 @@ func (hs *HomeScreen) drawGameButton(screen *ebiten.Image, btn *Button) {
 	ebitenutil.DebugPrintAt(screen, btn.text, textX, textY)
 	ebitenutil.DebugPrintAt(screen, btn.text, textX+1, textY) // Bold
 	ebitenutil.DebugPrintAt(screen, btn.text, textX, textY+1) // Bold
-}
-
-func (hs *HomeScreen) drawUpdateBanner(screen *ebiten.Image, gr *GameRoom) {
-	bannerX := float32(10)
-	bannerY := float32(10)
-	bannerWidth := float32(screenWidth - 20)
-	bannerHeight := float32(50)
-
-	// Banner color - green with hover effect
-	bannerColor := color.RGBA{60, 140, 60, 255}
-	borderColor := color.RGBA{80, 180, 80, 255}
-	if hs.updateBannerHovered {
-		bannerColor = color.RGBA{80, 160, 80, 255}
-		borderColor = color.RGBA{100, 200, 100, 255}
-	}
-
-	// Shadow
-	vector.DrawFilledRect(screen, bannerX+3, bannerY+3, bannerWidth, bannerHeight, color.RGBA{0, 0, 0, 100}, false)
-
-	// Banner background
-	vector.DrawFilledRect(screen, bannerX, bannerY, bannerWidth, bannerHeight, bannerColor, false)
-	vector.StrokeRect(screen, bannerX, bannerY, bannerWidth, bannerHeight, 3, borderColor, false)
-
-	// Banner text
-	message := "UPDATE AVAILABLE: " + gr.updateVersion + " - Click here to download!"
-	textX := int(bannerX + bannerWidth/2 - float32(len(message))*3)
-	textY := int(bannerY + bannerHeight/2 - 5)
-
-	// Draw text with white color and bold effect
-	ebitenutil.DebugPrintAt(screen, message, textX, textY)
-	ebitenutil.DebugPrintAt(screen, message, textX+1, textY)   // Bold
-	ebitenutil.DebugPrintAt(screen, message, textX, textY+1)   // Bold
 }
