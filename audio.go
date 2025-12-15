@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"log"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
@@ -12,14 +13,17 @@ import (
 //go:embed resources/oam-theme.wav
 var introThemeData []byte
 
-const sampleRate = 44100
+const (
+	sampleRate         = 44100
+	introFadeStartTime = 42 * time.Second // Start fading after 42 seconds
+)
 
 var (
 	audioContext   *audio.Context
 	introPlayer    *audio.Player
 	introVolume    float64 = 1.0
 	introFading    bool
-	introFadeSpeed float64 = 0.02 // How fast to fade out (per frame)
+	introFadeSpeed float64 = 0.0033 // Fade out over ~5 seconds (at 60 FPS)
 )
 
 // InitAudio initializes the audio context
@@ -74,6 +78,14 @@ func StartIntroFadeOut() {
 func UpdateIntroAudio() {
 	if introPlayer == nil {
 		return
+	}
+
+	// Start fading after 42 seconds of playback
+	if !introFading && introPlayer.IsPlaying() {
+		position := introPlayer.Position()
+		if position >= introFadeStartTime {
+			StartIntroFadeOut()
+		}
 	}
 
 	if introFading && introVolume > 0 {
