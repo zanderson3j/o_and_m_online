@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"log"
 	"math/rand"
+	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -243,7 +244,8 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 	if gr.updateAvailable && ls.updateMessageHovered && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		log.Printf("Opening update URL: %s", gr.updateURL)
 		OpenBrowser(gr.updateURL)
-		return nil
+		// Exit the app so it can be overwritten by the update
+		os.Exit(0)
 	}
 
 	if ls.showAvatarSelect {
