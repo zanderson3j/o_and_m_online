@@ -291,48 +291,94 @@ func DrawGiraffeAvatar(screen *ebiten.Image, x, y, scale float32) {
 	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{255, 200, 120, 255}, false)
 }
 
-// Draw Millipede avatar
+// Draw Millipede avatar - cute green inchworm style
 func DrawMillipedeAvatar(screen *ebiten.Image, x, y, scale float32) {
 	p := float32(1) * scale
 
-	// Long segmented body
-	segmentColor1 := color.RGBA{200, 100, 50, 255}
-	segmentColor2 := color.RGBA{150, 80, 40, 255}
+	// Colors - cute sage green with yellow stripes
+	bodyColor := color.RGBA{158, 194, 145, 255}   // Sage green
+	stripeColor := color.RGBA{220, 200, 130, 255} // Yellow/cream stripe
+	outlineColor := color.RGBA{70, 90, 60, 255}   // Dark green outline
+	legColor := color.RGBA{130, 170, 120, 255}    // Green for legs
 
-	// Body segments (curved)
-	for i := 0; i < 8; i++ {
-		var segColor color.RGBA
-		if i%2 == 0 {
-			segColor = segmentColor1
-		} else {
-			segColor = segmentColor2
-		}
-		x_offset := float32(i) * 4 * p
-		y_offset := float32(i) * 5 * p
-		// Main segment
-		vector.DrawFilledRect(screen, x+10*p+x_offset, y+10*p+y_offset, 12*p, 8*p, segColor, false)
-		// Legs (multiple per segment)
-		legColor := color.RGBA{100, 50, 30, 255}
-		vector.DrawFilledRect(screen, x+8*p+x_offset, y+14*p+y_offset, 2*p, 4*p, legColor, false)
-		vector.DrawFilledRect(screen, x+22*p+x_offset, y+14*p+y_offset, 2*p, 4*p, legColor, false)
+	// Segment positions forming a smooth arch curve (like the reference image)
+	// Head on left low, curves up and over, tail on right low
+	type segment struct {
+		x, y, r float32
 	}
 
-	// Head (larger segment)
-	headColor := color.RGBA{180, 90, 45, 255}
-	vector.DrawFilledRect(screen, x+6*p, y+5*p, 16*p, 10*p, headColor, false)
+	segments := []segment{
+		{x: 5, y: 38, r: 4},    // Head
+		{x: 9, y: 38, r: 3.5},  // Straight section
+		{x: 13, y: 38, r: 3.5}, // Straight section
+		{x: 16, y: 35, r: 3.5}, // Start curving up
+		{x: 19, y: 28, r: 3.5}, // Going up
+		{x: 21, y: 21, r: 3.5}, // Going up more
+		{x: 23, y: 15, r: 3.5}, // Top left
+		{x: 26, y: 12, r: 3.5}, // Top center
+		{x: 29, y: 15, r: 3.5}, // Top right
+		{x: 31, y: 21, r: 3.5}, // Coming down
+		{x: 33, y: 28, r: 3.5}, // Coming down more
+		{x: 36, y: 35, r: 3.5}, // End curve
+		{x: 39, y: 38, r: 3.5}, // Straight section
+		{x: 43, y: 38, r: 3.5}, // Straight section
+		{x: 47, y: 38, r: 3},   // Tail
+	}
 
-	// Antennae
-	antennaColor := color.RGBA{80, 40, 20, 255}
-	vector.DrawFilledRect(screen, x+8*p, y+2*p, 2*p, 5*p, antennaColor, false)
-	vector.DrawFilledRect(screen, x+18*p, y+2*p, 2*p, 5*p, antennaColor, false)
+	// Draw segments back to front so head overlaps properly
+	for i := len(segments) - 1; i >= 0; i-- {
+		seg := segments[i]
+		sx := x + seg.x*p
+		sy := y + seg.y*p
+		sr := seg.r * p
 
-	// Eyes
-	eyeColor := color.RGBA{20, 20, 20, 255}
-	vector.DrawFilledCircle(screen, x+10*p, y+9*p, 2*p, eyeColor, false)
-	vector.DrawFilledCircle(screen, x+18*p, y+9*p, 2*p, eyeColor, false)
+		// Main body segment
+		vector.DrawFilledCircle(screen, sx, sy, sr, bodyColor, false)
+
+		// Yellow stripe bands (two lines per segment, skip head and tail)
+		if i > 0 && i < len(segments)-1 {
+			vector.DrawFilledRect(screen, sx-sr*0.7, sy-sr*0.4, sr*1.4, 1.5*p, stripeColor, false)
+			vector.DrawFilledRect(screen, sx-sr*0.7, sy+sr*0.2, sr*1.4, 1.5*p, stripeColor, false)
+		}
+
+		// Outline
+		vector.StrokeCircle(screen, sx, sy, sr, 1.2*p, outlineColor, false)
+	}
+
+	// Head details
+	headX := x + segments[0].x*p
+	headY := y + segments[0].y*p
+	headR := segments[0].r * p
+
+	// Redraw head on top
+	vector.DrawFilledCircle(screen, headX, headY, headR, bodyColor, false)
+	vector.StrokeCircle(screen, headX, headY, headR, 1*p, outlineColor, false)
+
+	// Big cute eye
+	eyeX := headX - 0.5*p
+	eyeY := headY - 2*p
+	vector.DrawFilledCircle(screen, eyeX, eyeY, 3*p, color.RGBA{255, 255, 255, 255}, false)
+	vector.StrokeCircle(screen, eyeX, eyeY, 3*p, 0.8*p, outlineColor, false)
+
+	// Pupil
+	vector.DrawFilledCircle(screen, eyeX+0.3*p, eyeY+0.3*p, 1.5*p, color.RGBA{20, 20, 20, 255}, false)
+
+	// Eye shine
+	vector.DrawFilledCircle(screen, eyeX+0.8*p, eyeY-0.8*p, 0.6*p, color.RGBA{255, 255, 255, 255}, false)
+
+	// Cute small smile
+	vector.DrawFilledRect(screen, headX-0.5*p, headY+3*p, 2*p, 1*p, outlineColor, false)
+
+	// Stubby legs - front pair (under head/straight section)
+	vector.DrawFilledRect(screen, x+7*p, y+41*p, 2*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+11*p, y+41*p, 2*p, 4*p, legColor, false)
+
+	// Stubby legs - back pair (under tail/straight section)
+	vector.DrawFilledRect(screen, x+40*p, y+41*p, 2*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+44*p, y+41*p, 2*p, 4*p, legColor, false)
 
 	// Frame
-	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, color.RGBA{200, 100, 50, 255}, false)
+	vector.StrokeRect(screen, x, y, 50*p, 50*p, 2, bodyColor, false)
 }
 
 // Draw Owl avatar

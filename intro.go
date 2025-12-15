@@ -49,6 +49,9 @@ type IntroScreen struct {
 
 	// Skip functionality
 	skipButton   *Button
+
+	// Audio
+	audioStarted bool
 }
 
 func NewIntroScreen() *IntroScreen {
@@ -75,11 +78,18 @@ func (is *IntroScreen) Update(gr *GameRoom) error {
 	is.phaseFrame++
 	is.wingFrame++
 
+	// Start audio on first update
+	if !is.audioStarted {
+		PlayIntroTheme()
+		is.audioStarted = true
+	}
+
 	// Handle skip button
 	x, y := ebiten.CursorPosition()
 	is.skipButton.hovered = is.skipButton.Contains(x, y)
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) && is.skipButton.hovered {
+		StartIntroFadeOut()
 		is.phase = PhaseComplete
 	}
 
@@ -203,6 +213,8 @@ func (is *IntroScreen) Update(gr *GameRoom) error {
 		}
 
 	case PhaseComplete:
+		// Fade out intro music when transitioning to next screen
+		StartIntroFadeOut()
 		// Signal to GameRoom that intro is done
 		gr.introComplete = true
 		// Open avatar selection if lobby is ready, otherwise flag for later
@@ -362,47 +374,79 @@ func (is *IntroScreen) drawFlyingOwlive(screen *ebiten.Image) {
 }
 
 func (is *IntroScreen) drawCarriedMillipede(screen *ebiten.Image) {
-	// Draw millipede below Owlive's talons
-	x := float32(is.owliveX) + 5
-	y := float32(is.owliveY) + 170
-	scale := float32(1.5)
-	p := scale
+	// Draw millipede below Owlive's talons - same cute inchworm style as ground
+	x := float32(is.owliveX) - 40
+	y := float32(is.owliveY) + 120
+	p := float32(2.0)
 
-	// Slightly rotated/curled millipede being carried
-	segmentColor1 := color.RGBA{200, 100, 50, 255}
-	segmentColor2 := color.RGBA{150, 80, 40, 255}
+	// Colors - cute sage green with yellow stripes
+	bodyColor := color.RGBA{158, 194, 145, 255}
+	stripeColor := color.RGBA{220, 200, 130, 255}
+	outlineColor := color.RGBA{70, 90, 60, 255}
+	legColor := color.RGBA{130, 170, 120, 255}
 
-	// Body segments (slightly curved as if dangling)
-	for i := 0; i < 8; i++ {
-		var segColor color.RGBA
-		if i%2 == 0 {
-			segColor = segmentColor1
-		} else {
-			segColor = segmentColor2
-		}
-		xOffset := float32(i) * 3 * p
-		yOffset := float32(i) * 4 * p
-		// Main segment
-		vector.DrawFilledRect(screen, x+10*p+xOffset, y+float32(i)*p+yOffset, 10*p, 6*p, segColor, false)
-		// Legs (dangling)
-		legColor := color.RGBA{100, 50, 30, 255}
-		vector.DrawFilledRect(screen, x+8*p+xOffset, y+4*p+yOffset, 2*p, 4*p, legColor, false)
-		vector.DrawFilledRect(screen, x+20*p+xOffset, y+4*p+yOffset, 2*p, 4*p, legColor, false)
+	// Segment positions - same arch shape as ground/avatar
+	type segment struct {
+		sx, sy, r float32
+	}
+	segments := []segment{
+		{sx: 5, sy: 38, r: 4},
+		{sx: 9, sy: 38, r: 3.5},
+		{sx: 13, sy: 38, r: 3.5},
+		{sx: 16, sy: 35, r: 3.5},
+		{sx: 19, sy: 28, r: 3.5},
+		{sx: 21, sy: 21, r: 3.5},
+		{sx: 23, sy: 15, r: 3.5},
+		{sx: 26, sy: 12, r: 3.5},
+		{sx: 29, sy: 15, r: 3.5},
+		{sx: 31, sy: 21, r: 3.5},
+		{sx: 33, sy: 28, r: 3.5},
+		{sx: 36, sy: 35, r: 3.5},
+		{sx: 39, sy: 38, r: 3.5},
+		{sx: 43, sy: 38, r: 3.5},
+		{sx: 47, sy: 38, r: 3},
 	}
 
-	// Head
-	headColor := color.RGBA{180, 90, 45, 255}
-	vector.DrawFilledRect(screen, x+6*p, y, 14*p, 8*p, headColor, false)
+	// Draw segments back to front
+	for i := len(segments) - 1; i >= 0; i-- {
+		seg := segments[i]
+		sx := x + seg.sx*p
+		sy := y + seg.sy*p
+		sr := seg.r * p
 
-	// Antennae
-	antennaColor := color.RGBA{80, 40, 20, 255}
-	vector.DrawFilledRect(screen, x+8*p, y-4*p, 2*p, 5*p, antennaColor, false)
-	vector.DrawFilledRect(screen, x+16*p, y-4*p, 2*p, 5*p, antennaColor, false)
+		vector.DrawFilledCircle(screen, sx, sy, sr, bodyColor, false)
+		if i > 0 && i < len(segments)-1 {
+			vector.DrawFilledRect(screen, sx-sr*0.7, sy-sr*0.4, sr*1.4, 1.5*p, stripeColor, false)
+			vector.DrawFilledRect(screen, sx-sr*0.7, sy+sr*0.2, sr*1.4, 1.5*p, stripeColor, false)
+		}
+		vector.StrokeCircle(screen, sx, sy, sr, 1.2*p, outlineColor, false)
+	}
 
-	// Eyes
-	eyeColor := color.RGBA{20, 20, 20, 255}
-	vector.DrawFilledCircle(screen, x+10*p, y+3*p, 2*p, eyeColor, false)
-	vector.DrawFilledCircle(screen, x+16*p, y+3*p, 2*p, eyeColor, false)
+	// Head details
+	headX := x + segments[0].sx*p
+	headY := y + segments[0].sy*p
+	headR := segments[0].r * p
+	vector.DrawFilledCircle(screen, headX, headY, headR, bodyColor, false)
+	vector.StrokeCircle(screen, headX, headY, headR, 1*p, outlineColor, false)
+
+	// Big cute eye
+	eyeX := headX - 0.5*p
+	eyeY := headY - 2*p
+	vector.DrawFilledCircle(screen, eyeX, eyeY, 3*p, color.RGBA{255, 255, 255, 255}, false)
+	vector.StrokeCircle(screen, eyeX, eyeY, 3*p, 0.8*p, outlineColor, false)
+	vector.DrawFilledCircle(screen, eyeX+0.3*p, eyeY+0.3*p, 1.5*p, color.RGBA{20, 20, 20, 255}, false)
+	vector.DrawFilledCircle(screen, eyeX+0.8*p, eyeY-0.8*p, 0.6*p, color.RGBA{255, 255, 255, 255}, false)
+
+	// Cute small smile
+	vector.DrawFilledRect(screen, headX-0.5*p, headY+3*p, 2*p, 1*p, outlineColor, false)
+
+	// Stubby legs - front pair
+	vector.DrawFilledRect(screen, x+7*p, y+41*p, 2*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+11*p, y+41*p, 2*p, 4*p, legColor, false)
+
+	// Stubby legs - back pair
+	vector.DrawFilledRect(screen, x+40*p, y+41*p, 2*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+44*p, y+41*p, 2*p, 4*p, legColor, false)
 }
 
 func (is *IntroScreen) drawWelcomeText(screen *ebiten.Image) {
@@ -465,48 +509,80 @@ func (is *IntroScreen) drawTitleText(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, title2, title2X+1, int(boxY+66))
 }
 
-// Draw millipede on ground without frame
+// Draw millipede on ground without frame - cute inchworm style
 func (is *IntroScreen) drawGroundMillipede(screen *ebiten.Image) {
 	x := float32(is.millipedeX)
 	y := float32(is.millipedeY)
-	scale := float32(2.0)
-	p := scale
+	p := float32(2.5)
 
-	// Long segmented body
-	segmentColor1 := color.RGBA{200, 100, 50, 255}
-	segmentColor2 := color.RGBA{150, 80, 40, 255}
+	// Colors - cute sage green with yellow stripes
+	bodyColor := color.RGBA{158, 194, 145, 255}
+	stripeColor := color.RGBA{220, 200, 130, 255}
+	outlineColor := color.RGBA{70, 90, 60, 255}
+	legColor := color.RGBA{130, 170, 120, 255}
 
-	// Body segments (curved)
-	for i := 0; i < 8; i++ {
-		var segColor color.RGBA
-		if i%2 == 0 {
-			segColor = segmentColor1
-		} else {
-			segColor = segmentColor2
-		}
-		xOffset := float32(i) * 4 * p
-		yOffset := float32(i) * 5 * p
-		// Main segment
-		vector.DrawFilledRect(screen, x+10*p+xOffset, y+10*p+yOffset, 12*p, 8*p, segColor, false)
-		// Legs (multiple per segment)
-		legColor := color.RGBA{100, 50, 30, 255}
-		vector.DrawFilledRect(screen, x+8*p+xOffset, y+14*p+yOffset, 2*p, 4*p, legColor, false)
-		vector.DrawFilledRect(screen, x+22*p+xOffset, y+14*p+yOffset, 2*p, 4*p, legColor, false)
+	// Segment positions - same arch shape as avatar
+	type segment struct {
+		sx, sy, r float32
+	}
+	segments := []segment{
+		{sx: 5, sy: 38, r: 4},
+		{sx: 9, sy: 38, r: 3.5},
+		{sx: 13, sy: 38, r: 3.5},
+		{sx: 16, sy: 35, r: 3.5},
+		{sx: 19, sy: 28, r: 3.5},
+		{sx: 21, sy: 21, r: 3.5},
+		{sx: 23, sy: 15, r: 3.5},
+		{sx: 26, sy: 12, r: 3.5},
+		{sx: 29, sy: 15, r: 3.5},
+		{sx: 31, sy: 21, r: 3.5},
+		{sx: 33, sy: 28, r: 3.5},
+		{sx: 36, sy: 35, r: 3.5},
+		{sx: 39, sy: 38, r: 3.5},
+		{sx: 43, sy: 38, r: 3.5},
+		{sx: 47, sy: 38, r: 3},
 	}
 
-	// Head (larger segment)
-	headColor := color.RGBA{180, 90, 45, 255}
-	vector.DrawFilledRect(screen, x+6*p, y+5*p, 16*p, 10*p, headColor, false)
+	// Draw segments back to front
+	for i := len(segments) - 1; i >= 0; i-- {
+		seg := segments[i]
+		sx := x + seg.sx*p
+		sy := y + seg.sy*p
+		sr := seg.r * p
 
-	// Antennae
-	antennaColor := color.RGBA{80, 40, 20, 255}
-	vector.DrawFilledRect(screen, x+8*p, y+2*p, 2*p, 5*p, antennaColor, false)
-	vector.DrawFilledRect(screen, x+18*p, y+2*p, 2*p, 5*p, antennaColor, false)
+		vector.DrawFilledCircle(screen, sx, sy, sr, bodyColor, false)
+		if i > 0 && i < len(segments)-1 {
+			vector.DrawFilledRect(screen, sx-sr*0.7, sy-sr*0.4, sr*1.4, 1.5*p, stripeColor, false)
+			vector.DrawFilledRect(screen, sx-sr*0.7, sy+sr*0.2, sr*1.4, 1.5*p, stripeColor, false)
+		}
+		vector.StrokeCircle(screen, sx, sy, sr, 1.2*p, outlineColor, false)
+	}
 
-	// Eyes
-	eyeColor := color.RGBA{20, 20, 20, 255}
-	vector.DrawFilledCircle(screen, x+10*p, y+9*p, 2*p, eyeColor, false)
-	vector.DrawFilledCircle(screen, x+18*p, y+9*p, 2*p, eyeColor, false)
+	// Head details
+	headX := x + segments[0].sx*p
+	headY := y + segments[0].sy*p
+	headR := segments[0].r * p
+	vector.DrawFilledCircle(screen, headX, headY, headR, bodyColor, false)
+	vector.StrokeCircle(screen, headX, headY, headR, 1*p, outlineColor, false)
+
+	// Big cute eye
+	eyeX := headX - 0.5*p
+	eyeY := headY - 2*p
+	vector.DrawFilledCircle(screen, eyeX, eyeY, 3*p, color.RGBA{255, 255, 255, 255}, false)
+	vector.StrokeCircle(screen, eyeX, eyeY, 3*p, 0.8*p, outlineColor, false)
+	vector.DrawFilledCircle(screen, eyeX+0.3*p, eyeY+0.3*p, 1.5*p, color.RGBA{20, 20, 20, 255}, false)
+	vector.DrawFilledCircle(screen, eyeX+0.8*p, eyeY-0.8*p, 0.6*p, color.RGBA{255, 255, 255, 255}, false)
+
+	// Cute small smile
+	vector.DrawFilledRect(screen, headX-0.5*p, headY+3*p, 2*p, 1*p, outlineColor, false)
+
+	// Stubby legs - front pair
+	vector.DrawFilledRect(screen, x+7*p, y+41*p, 2*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+11*p, y+41*p, 2*p, 4*p, legColor, false)
+
+	// Stubby legs - back pair
+	vector.DrawFilledRect(screen, x+40*p, y+41*p, 2*p, 4*p, legColor, false)
+	vector.DrawFilledRect(screen, x+44*p, y+41*p, 2*p, 4*p, legColor, false)
 }
 
 // Draw all avatars marching across the top (including all avatars, reversed order)

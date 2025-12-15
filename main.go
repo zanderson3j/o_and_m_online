@@ -41,6 +41,9 @@ type GameRoom struct {
 }
 
 func (gr *GameRoom) Update() error {
+	// Always update audio (handles fade effects even after intro ends)
+	UpdateIntroAudio()
+
 	// Show intro screen first if not complete
 	if !gr.introComplete && gr.introScreen != nil {
 		return gr.introScreen.Update(gr)
