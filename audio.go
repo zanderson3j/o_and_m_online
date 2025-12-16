@@ -13,6 +13,9 @@ import (
 //go:embed resources/oam-theme.wav
 var introThemeData []byte
 
+//go:embed resources/sweet_puppy_paws.wav
+var sweetPuppyPawsData []byte
+
 const (
 	sampleRate         = 44100
 	introFadeStartTime = 42 * time.Second // Start fading after 42 seconds
@@ -113,4 +116,25 @@ func StopIntroTheme() {
 // IsIntroThemePlaying returns true if the intro theme is currently playing
 func IsIntroThemePlaying() bool {
 	return introPlayer != nil && introPlayer.IsPlaying()
+}
+
+// PlaySweetPuppyPawsSound plays the sweet puppy paws audio file
+func PlaySweetPuppyPawsSound() {
+	if audioContext == nil {
+		InitAudio()
+	}
+
+	stream, err := wav.Decode(audioContext, bytes.NewReader(sweetPuppyPawsData))
+	if err != nil {
+		log.Printf("Failed to decode sweet_puppy_paws.wav: %v", err)
+		return
+	}
+
+	player, err := audioContext.NewPlayer(stream)
+	if err != nil {
+		log.Printf("Failed to create player for sweet_puppy_paws.wav: %v", err)
+		return
+	}
+
+	player.Play()
 }

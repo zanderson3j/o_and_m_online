@@ -262,6 +262,9 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 					ls.selectedAvatar = AvatarType(i)
 					ls.networkClient.SetAvatar(i)
 					ls.showAvatarSelect = false
+					if AvatarType(i) == AvatarPuppy {
+						PlaySweetPuppyPawsSound()
+					}
 				}
 			}
 			// Handle random avatar button
@@ -271,6 +274,9 @@ func (ls *LobbyScreen) Update(gr *GameRoom) error {
 				ls.selectedAvatar = AvatarType(randomAvatar)
 				ls.networkClient.SetAvatar(randomAvatar)
 				ls.showAvatarSelect = false
+				if AvatarType(randomAvatar) == AvatarPuppy {
+					PlaySweetPuppyPawsSound()
+				}
 			}
 			if ls.backButton.hovered {
 				ls.showAvatarSelect = false
